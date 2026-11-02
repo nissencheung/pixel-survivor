@@ -1,5 +1,9 @@
 # Notices
 
+**This demo.** The scrolling forest-and-lake map, hero, interface chrome, and WebAudio sound effects are original procedural pixel art and synthesis for this demo. They are not part of the pixelfx package.
+
+**pixelfx.** Monster and skill sprites in `assets/` and `manifest.js` are from pixelfx by Patch & Hugo Duprez, MIT License (see `LICENSE-pixelfx.txt`).
+
 **Hugo Duprez.** `src/core/sim.js` and the effects that say so at the top of their file adapt Sprite Fusion's
 open-source pixel art VFX (https://www.spritefusion.com/pixel-art-vfx), Copyright (c) 2026 Hugo Duprez, MIT License.
 
