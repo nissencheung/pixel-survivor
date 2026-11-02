@@ -2,11 +2,12 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>像素湖影</title>
 <style>
-html,body{margin:0;height:100%;background:#07060c;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none}
-canvas{display:block;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges}
+:root{--sal:env(safe-area-inset-left,0px);--sar:env(safe-area-inset-right,0px);--sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px)}
+html,body{margin:0;height:100%;background:#07060c;overflow:hidden;position:fixed;inset:0;width:100%;touch-action:none;overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-text-size-adjust:100%}
+canvas{display:block;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges;touch-action:none}
 </style>
 </head>
 <body>

@@ -136,7 +136,11 @@
   const clicks = [];
   const keyHeld = {};
   let held = {}, prevHeld = {}, pressed = {};
-  let touchMode = (navigator.maxTouchPoints > 0) || matchMedia('(pointer: coarse)').matches || Q.has('touch');
+  function detectTouch() {
+    return Q.has('touch') || matchMedia('(pointer: coarse)').matches || ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+  }
+  let touchMode = detectTouch();
+  let fsAsked = false;
   let fpsAcc = 0, fpsN = 0;
 
   function resize() {
@@ -153,11 +157,27 @@
     const ox = (r.width - VW * s) / 2, oy = (r.height - VH * s) / 2;
     return [(e.clientX - r.left - ox) / s, (e.clientY - r.top - oy) / s];
   }
+  function requestFS() {
+    if (fsAsked || !touchMode) return;
+    fsAsked = true;
+    const el = document.documentElement;
+    const fn = el.requestFullscreen || el.webkitRequestFullscreen;
+    if (!fn) return;
+    try {
+      const p = fn.call(el);
+      if (p && p.catch) p.catch(() => {});
+    } catch (e) { /* ignore */ }
+  }
   cv.addEventListener('pointerdown', (e) => {
     touchMode = true;
+    requestFS();
     cv.setPointerCapture?.(e.pointerId);
     pointers.set(e.pointerId, toBuf(e));
   });
+  addEventListener('touchstart', () => { touchMode = true; }, { passive: true });
+  addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+  addEventListener('gesturestart', (e) => e.preventDefault());
+  addEventListener('dblclick', (e) => e.preventDefault());
   addEventListener('pointermove', (e) => { if (pointers.has(e.pointerId)) pointers.set(e.pointerId, toBuf(e)); });
   addEventListener('pointerup', (e) => {
     const p = pointers.get(e.pointerId) || toBuf(e);
@@ -178,13 +198,27 @@
   addEventListener('keyup', (e) => { keyHeld[e.key.toLowerCase()] = 0; });
 
   function hit(x, y, r) { return r && x >= r.x && y >= r.y && x < r.x + r.w && y < r.y + r.h; }
-  function controls() {
+  function safePad() {
+    const cs = getComputedStyle(document.documentElement);
+    const px = (name) => parseFloat(cs.getPropertyValue(name)) || 0;
+    const r = cv.getBoundingClientRect();
+    const s = Math.min(r.width / VW, r.height / VH) || 1;
     return {
-      left: { x: 14, y: 196, w: 48, h: 42 }, right: { x: 66, y: 196, w: 48, h: 42 },
-      up: { x: 38, y: 154, w: 48, h: 38 }, down: { x: 38, y: 240, w: 48, h: 26 },
-      atk: { x: 346, y: 168, w: 60, h: 44 }, jump: { x: 412, y: 160, w: 56, h: 52 },
-      dash: { x: 346, y: 218, w: 60, h: 42 }, skill: { x: 412, y: 218, w: 56, h: 42 },
-      swap: { x: 286, y: 218, w: 54, h: 42 },
+      l: Math.round(px('--sal') / s),
+      r: Math.round(px('--sar') / s),
+      t: Math.round(px('--sat') / s),
+      b: Math.round(px('--sab') / s),
+    };
+  }
+  function controls() {
+    const p = safePad();
+    const L = 10 + p.l, R = VW - 10 - p.r, B = VH - 8 - p.b;
+    return {
+      left: { x: L, y: B - 96, w: 58, h: 46 }, right: { x: L + 62, y: B - 96, w: 58, h: 46 },
+      up: { x: L + 30, y: B - 142, w: 56, h: 42 }, down: { x: L + 30, y: B - 46, w: 56, h: 40 },
+      atk: { x: R - 126, y: B - 100, w: 62, h: 48 }, jump: { x: R - 60, y: B - 106, w: 60, h: 54 },
+      dash: { x: R - 126, y: B - 48, w: 62, h: 44 }, skill: { x: R - 60, y: B - 48, w: 60, h: 44 },
+      swap: { x: R - 186, y: B - 48, w: 56, h: 44 },
     };
   }
   function poll() {
@@ -744,7 +778,7 @@
     if (L.theme === 'storm') {
       G.splashT -= dt;
       if (G.splashT <= 0) {
-        G.splashT = 0.35;
+        G.splashT = 0.75;
         const x = camX + 40 + Math.random() * 400;
         if (x > 0 && x < L.len) addFx('rain-splash', x, GROUND, { sc: 0.45, life: 0.8 });
       }
@@ -759,10 +793,12 @@
     const maxC = Math.max(0, L.len - VW);
     const dest = Math.max(0, Math.min(maxC, look));
     camX += (dest - camX) * Math.min(1, dt * 4);
-    let wantY = GROUND - 158;
-    if (p.y < GROUND - 46) wantY = Math.min(wantY, p.y - 108);
-    wantY = Math.max(GROUND - 188, Math.min(GROUND - 150, wantY));
+    let wantY = GROUND - 118;
+    if (p.y < GROUND - 36) wantY = Math.min(wantY, p.y - 86);
+    wantY = Math.max(GROUND - 148, Math.min(GROUND - 108, wantY));
     camY += (wantY - camY) * Math.min(1, dt * 3);
+    camX = Math.round(camX);
+    camY = Math.round(camY);
   }
   function finishLevel() {
     const hpOk = G.p.hp >= G.p.maxhp * 0.45;
@@ -834,9 +870,9 @@
       list.push({ id: 'triple', x: 110, y: 168, w: 260, h: 26, label: G.tripled ? '已领取三倍金币' : '三倍金币（模拟广告）' });
       list.push({ id: 'next', x: 110, y: 202, w: 260, h: 28, label: G.li < 2 ? '下一关' : '返回标题' });
     } else if (state === 'play' && G) {
-      list.push({ id: 'pause', x: 404, y: 6, w: 34, h: 16, label: '停' });
-      list.push({ id: 'mute', x: 442, y: 6, w: 32, h: 16, label: SFX.muted ? '静' : '音' });
-      ORDER.filter((id) => G.owned[id]).forEach((id, i) => list.push({ id: 'w:' + id, x: 8 + i * 26, y: 26, w: 24, h: 18 }));
+      const pad = safePad();
+      list.push({ id: 'pause', x: 404 - pad.r, y: 6 + pad.t, w: 34, h: 16, label: '停' });
+      list.push({ id: 'mute', x: 442 - pad.r, y: 6 + pad.t, w: 32, h: 16, label: SFX.muted ? '静' : '音' });
       if (G.nearShrine) list.push({ id: 'shrine', x: 150, y: 78, w: 180, h: 22, label: '试用火箭筒' });
     }
     return list;
@@ -970,9 +1006,9 @@
       if (f > 0.08) { b.fillStyle = '#ffd0dc'; b.fillRect(x + 1, y + 3, 1, 1); b.fillRect(x + 5, y + 3, 1, 1); }
     }
   }
-  function shadow(x, y, w) {
-    b.fillStyle = 'rgba(0,0,0,0.28)';
-    b.beginPath(); b.ellipse(x, y, w, 3.2, 0, 0, 7); b.fill();
+  function shadow(x, y) {
+    b.fillStyle = 'rgba(0,0,0,0.4)';
+    b.fillRect(Math.round(x) - 5, Math.round(y) - 1, 10, 2);
   }
   function pixGlow(x, y, col, r) {
     b.save(); b.globalCompositeOperation = 'lighter';
@@ -999,8 +1035,7 @@
   function drawEnemy(e) {
     const def = EDEF[e.k] || EDEF.slime;
     const x = e.x - camX, y = e.y - camY;
-    if (!e.fly) shadow(x, (GROUND - camY), 8);
-    else shadow(e.x - camX, GROUND - camY, 7);
+    shadow(x, e.fly ? (GROUND - camY) : y);
     const a = e.spawnT < 0.35 ? e.spawnT / 0.35 : 1;
     drawSheet(e.k, clock + (e.phase || 0), x, y, { sc: def.sc, flash: e.flash > 0, a });
   }
@@ -1011,11 +1046,19 @@
     b.imageSmoothingEnabled = false;
     Scenery.drawBackdrop(b, camX, clock, theme, () => {
       if (theme === 'snow') {
-        drawScreen('aurora', clock, 0.92);
-        drawScreen('shooting-stars', clock * 0.8, 0.8);
+        drawScreen('aurora', clock, 0.42);
+        drawScreen('shooting-stars', clock * 0.8, 0.32);
       }
     });
     Scenery.drawTreesAt(b, camX, groundS, clock, theme);
+    b.save();
+    b.beginPath();
+    b.rect(0, 0, VW, Math.max(0, Math.round(groundS)));
+    b.clip();
+    if (theme === 'sun') drawScreen('falling-leaves', clock, 0.28);
+    if (theme === 'storm') { drawScreen('rain', clock, 0.32); drawScreen('storm', clock, 0.16); }
+    if (theme === 'snow') { drawScreen('snow', clock, 0.3); drawScreen('fog', clock, 0.2); }
+    b.restore();
     for (const [a, c] of L.gaps) {
       Scenery.drawWater(b, buf, a - camX - 8, groundS, (c - a) + 16, clock, theme);
     }
@@ -1028,7 +1071,6 @@
     for (const [a, c] of segs) Scenery.drawGround(b, a - camX, groundS, c - a, theme, clock);
     for (const plat of L.plats) Scenery.drawPlatform(b, plat.x - camX, plat.y - camY, plat.w, theme, clock);
     for (const m of L.movers) Scenery.drawPlatform(b, m.x - camX, m.y - camY, m.w, theme, clock);
-    for (const d of L.dec) if (d.x > camX - 30 && d.x < camX + VW + 30) Scenery.decor(b, d.k, d.x - camX, d.y - camY, clock);
     for (const c of L.checks) Scenery.flag(b, c - camX, groundS, G && G.p && G.p.cp >= c, clock);
     if (L.arena && G && G.wall) {
       b.fillStyle = '#2a3148';
@@ -1037,8 +1079,7 @@
       b.fillRect(L.arena - camX, groundS - 46, 6, 3);
     }
     Scenery.gate(b, L.goal - camX, groundS, !G || G.goalOpen, clock);
-    for (const g of L.groves) drawSheet('leaf-storm', clock, g.x - camX, GROUND - camY, { sc: 0.48, glow: 1, a: 0.9 });
-    for (const c of L.clouds) drawSheet('storm-cloud', clock, c.x - camX, c.y - camY, { sc: 0.5, a: 0.95 });
+    if (L.clouds && L.clouds[0]) drawSheet('storm-cloud', clock, L.clouds[0].x - camX, L.clouds[0].y - camY, { sc: 0.42, a: 0.4 });
     if (G) {
       for (const ped of G.pedestals) if (!ped.got) {
         const bob = Math.sin(clock * 3 + ped.x) * 3;
@@ -1067,9 +1108,7 @@
       }
       // actor
       if (state !== 'title') {
-        const col = theme === 'snow' ? 'rgba(180,210,255,0.9)' : theme === 'storm' ? 'rgba(180,200,230,0.7)' : 'rgba(255,230,170,0.9)';
-        pixGlow(G.p.x - camX, G.p.y - camY - 16, col, 18);
-        shadow(G.p.x - camX, groundS, G.p.on ? 9 : 6);
+        shadow(G.p.x - camX, groundS);
         drawHeroAt(G.p, G.weapon, G.p.inv > 0 && Math.sin(clock * 28) > 0.2 && G.p.hurtT <= 0 ? 0.75 : 1);
       }
       // reflections of hero & enemies over lakes
@@ -1101,38 +1140,25 @@
       }
     } else if (state === 'title' || state === 'help') {
       const hero = { x: 1310, y: 164, face: 1, vx: 0, vy: 0, on: true, hurtT: 0, skillT: 0, dashT: 0, atk: 0, animT: clock, inv: 0 };
-      pixGlow(hero.x - camX, hero.y - camY - 16, 'rgba(255,230,170,0.95)', 20);
-      shadow(hero.x - camX, 164 - camY, 9);
+      shadow(hero.x - camX, 164 - camY);
       Hero.draw(b, hero.x - camX, hero.y - camY, 1, 'idle', clock, 'sword', false);
     }
-    Scenery.frontGrass(b, camX, groundS, clock, theme);
-    if (theme === 'sun') drawScreen('falling-leaves', clock, 0.62);
-    if (theme === 'storm') { drawScreen('rain', clock, 0.8); drawScreen('storm', clock, 0.42); }
-    if (theme === 'snow') { drawScreen('snow', clock, 0.88); drawScreen('fog', clock, 0.72); }
     if (G) for (const f of G.fx) if ((SHEETS[f.n] && SHEETS[f.n].screen) || f.screen) drawScreen(f.n, (f.t0 || 0) + f.t, 1);
     Scenery.grade(b, theme, flashW);
   }
 
   function drawHUD() {
-    const p = G.p, L = cur();
+    const p = G.p, L = cur(), pad = safePad();
     hearts(p.hp, p.maxhp);
-    text(L.name, VW / 2, 12, 12, '#fff6d8', 'center');
-    const ids = ORDER.filter((id) => G.owned[id]);
-    ids.forEach((id, i) => {
-      const x = 8 + i * 26, y = 26, on = id === G.weapon;
-      b.fillStyle = 'rgba(8,10,18,0.82)';
-      b.fillRect(x, y, 24, 18);
-      b.strokeStyle = on ? '#ffd056' : '#8a7a58';
-      b.strokeRect(x + 0.5, y + 0.5, 23, 17);
-      icon(id, x + 12, y + 10);
-    });
-    text(WEAPONS[G.weapon].name, 8 + ids.length * 26 + 4, 35, 11, '#fff6d4');
-    const step = G.p.atk || 0;
-    for (let i = 0; i < (WEAPONS[G.weapon].combo.length); i++) {
-      b.fillStyle = i < step ? '#ffd056' : 'rgba(255,255,255,0.25)';
-      b.fillRect(8 + i * 8, 48, 6, 3);
-    }
-    text('金 ' + G.levelCoins, 8, 60, 11, '#ffd056');
+    text(String(G.levelCoins), 78, 12, 11, '#e8c060');
+    text(L.name, VW / 2, 12 + pad.t, 11, '#e8e4d4', 'center');
+    const bx = 8 + pad.l, by = 22 + pad.t;
+    b.fillStyle = 'rgba(8,10,18,0.72)';
+    b.fillRect(bx, by, 18, 16);
+    b.strokeStyle = '#e8c060';
+    b.strokeRect(bx + 0.5, by + 0.5, 17, 15);
+    icon(G.weapon, bx + 9, by + 9);
+    text(WEAPONS[G.weapon].name, bx + 22, by + 8, 11, '#f4f0e4');
     if (G.boss && G.boss.hp > 0) {
       const bw = 180, bx = (VW - bw) / 2, by = 24;
       b.fillStyle = '#1a1018'; b.fillRect(bx, by, bw, 8);
@@ -1154,9 +1180,9 @@
       const labels = { atk: '攻击', jump: '跳', dash: '冲', skill: '技', swap: '换' };
       for (const k of Object.keys(c)) {
         const r = c[k];
-        b.fillStyle = held[k] ? 'rgba(240,208,120,0.9)' : 'rgba(10,14,24,0.62)';
+        b.fillStyle = held[k] ? 'rgba(232,192,96,0.72)' : 'rgba(8,10,16,0.38)';
         b.fillRect(r.x, r.y, r.w, r.h);
-        b.strokeStyle = 'rgba(240,212,138,0.9)';
+        b.strokeStyle = 'rgba(232,196,120,0.7)';
         b.strokeRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1);
         if (k === 'left' || k === 'right' || k === 'up' || k === 'down') {
           b.fillStyle = held[k] ? '#24180c' : '#fff6d4';
@@ -1184,9 +1210,10 @@
       text('像素湖影', 300, 36, 26, '#fff6d4', 'left');
       text('横版动作 · 三关试炼', 300, 58, 11, '#ffd056', 'left');
       for (const bt of buttons()) btn(bt, false);
+      if (touchMode) text('触屏：左侧移动，右侧攻击 / 跳 / 冲 / 技', 300, 176, 10, '#e8e4d4', 'left');
     } else if (state === 'help') {
       panel(28, 18, 424, 210);
-      const lines = ['操作', '键盘：A D 移动，K / 空格 / W 跳跃', 'J 攻击（连按三下是连段），L 冲刺，U 技能', 'Q 切换武器，1-4 直接装备，M 静音，Esc 暂停', '触屏：左方向键，右下 攻击 / 跳 / 冲 / 技 / 换', '点上方武器图标也能切换。向下可穿过薄平台。', '长剑连斩、重锤击飞、枪鞭远距离、火枪远程。', '关卡里的石座能捡到新武器。神龛可看模拟广告', '试用火箭筒，只在本关有效。'];
+      const lines = ['操作', '键盘：A D 移动，K / 空格跳跃', 'J 攻击连段，L 冲刺，U 技能，Q 换武器', '触屏：左侧方向键，右侧 攻击 / 跳 / 冲 / 技 / 换', '向下可穿过薄平台。石座拾取武器。', '神龛可看模拟广告，试用火箭筒仅本关。'];
       lines.forEach((ln, i) => text(ln, 44, 36 + i * 20, i === 0 ? 16 : 12, i === 0 ? '#ffd056' : '#fff6d4'));
       for (const bt of buttons()) btn(bt, false);
     } else if (state === 'credits') {
@@ -1287,10 +1314,12 @@
     b.clearRect(0, 0, VW, VH);
     if (state === 'loading') drawLoad();
     else {
-      if (state === 'title' || state === 'help') { camX = 1180 + Math.sin(clock * 0.25) * 16; camY = GROUND - 158; }
-      if (state === 'credits') { camX = 420 + Math.sin(clock * 0.2) * 20; camY = GROUND - 158; }
+      if (state === 'title' || state === 'help') { camX = Math.round(1180 + Math.sin(clock * 0.25) * 12); camY = GROUND - 118; }
+      if (state === 'credits') { camX = Math.round(420 + Math.sin(clock * 0.2) * 12); camY = GROUND - 118; }
+      camX = Math.round(camX); camY = Math.round(camY);
       b.save();
-      if (shake > 0) b.translate((Math.random() - 0.5) * shake * 2.2, (Math.random() - 0.5) * shake * 2.2);
+      b.imageSmoothingEnabled = false;
+      if (shake > 0) b.translate(Math.round((Math.random() - 0.5) * shake * 2), Math.round((Math.random() - 0.5) * shake * 2));
       drawWorld();
       b.restore();
       if (state === 'play' || state === 'pause' || state === 'dead' || state === 'summary') if (G) drawHUD();
@@ -1303,13 +1332,19 @@
     ctx.fillRect(0, 0, dprW, dprH);
     const s = Math.min(dprW / VW, dprH / VH);
     ctx.drawImage(buf, (dprW - VW * s) / 2, (dprH - VH * s) / 2, VW * s, VH * s);
-    if (innerHeight > innerWidth * 1.2) {
-      const dpr = dprW / innerWidth;
+    if (innerHeight > innerWidth * 1.05) {
+      const dpr = dprW / Math.max(1, innerWidth);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.fillStyle = 'rgba(0,0,0,0.55)';
-      ctx.fillRect(0, innerHeight - 32, innerWidth, 32);
-      ctx.fillStyle = '#fff'; ctx.font = '14px ' + FONT; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText('请横屏游玩', innerWidth / 2, innerHeight - 16);
+      ctx.fillStyle = 'rgba(6,8,14,0.92)';
+      ctx.fillRect(0, 0, innerWidth, innerHeight);
+      ctx.fillStyle = '#f4f0e4';
+      ctx.font = '20px ' + FONT;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('请把手机转成横向', innerWidth / 2, innerHeight / 2 - 12);
+      ctx.font = '13px ' + FONT;
+      ctx.fillStyle = '#e8c060';
+      ctx.fillText('横屏游玩', innerWidth / 2, innerHeight / 2 + 16);
     }
   }
 

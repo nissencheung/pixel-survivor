@@ -20,31 +20,31 @@ window.Scenery = (() => {
   function themeOf(id) {
     if (id === 'storm') {
       return {
-        sky: ['#1a2030', '#3a465c', '#6a7388'], sun: null, moon: '#d5dbe8',
-        far: '#8b97ab', near: '#4d596c', ridge: '#c5d0e0', snow: false,
-        leaf: '#1e3a34', leafHi: '#3e6a58', trunk: '#2a241c',
-        grass: '#3d6a52', grassHi: '#7dba8a', dirt: '#4a4038', dirtDark: '#2e2824', pebble: '#6a6258',
-        waterTop: '#35586e', waterDeep: '#101820', glint: 'rgba(210,230,240,0.45)',
-        grade: 'rgba(70, 90, 120, 0.16)', vig: 0.85, shaft: false,
+        sky: ['#121722', '#1c2636', '#2a3648'], sun: null, moon: '#c5cddd',
+        far: '#3a4556', near: '#3a4556', ridge: '#4a5568', snow: false,
+        leaf: '#243830', leafHi: '#2e463c', trunk: '#2a2622',
+        grass: '#3d6848', grassHi: '#4e7a56', dirt: '#4a4038', dirtDark: '#322c28', pebble: '#4a4038',
+        waterTop: '#2a4558', waterDeep: '#121820', glint: 'rgba(180,200,210,0.35)',
+        grade: 'rgba(0,0,0,0)', vig: 0.35, shaft: false,
       };
     }
     if (id === 'snow') {
       return {
-        sky: ['#070a16', '#141a36', '#24325e'], sun: null, moon: '#f6f1d4',
-        far: '#9aabcc', near: '#3d4d78', ridge: '#eef3ff', snow: true,
-        leaf: '#243044', leafHi: '#d5e2f4', trunk: '#2a241e',
-        grass: '#e7f2ff', grassHi: '#ffffff', dirt: '#6d7c96', dirtDark: '#3e4a62', pebble: '#d5e0ee',
-        waterTop: '#8eb6d4', waterDeep: '#1a3054', glint: 'rgba(255,255,255,0.7)',
-        grade: 'rgba(40, 60, 130, 0.10)', vig: 0.72, shaft: false,
+        sky: ['#070910', '#101628', '#1a2440'], sun: null, moon: '#e4e0cc',
+        far: '#2a3348', near: '#2a3348', ridge: '#3a445c', snow: true,
+        leaf: '#1c2838', leafHi: '#d5deea', trunk: '#241e1a',
+        grass: '#d5e2ee', grassHi: '#eef4fa', dirt: '#5a6a80', dirtDark: '#3a4658', pebble: '#5a6a80',
+        waterTop: '#6a90b0', waterDeep: '#152438', glint: 'rgba(230,240,250,0.45)',
+        grade: 'rgba(0,0,0,0)', vig: 0.4, shaft: false,
       };
     }
     return {
-      sky: ['#67bfff', '#b7e6ff', '#ffe6b4'], sun: '#ffe38a', moon: null,
-      far: '#c5d7ee', near: '#6e90b8', ridge: '#f3f7ff', snow: false,
-      leaf: '#1f7a3a', leafHi: '#b6ee6a', trunk: '#5a3a22',
-      grass: '#3eae48', grassHi: '#d8ff9a', dirt: '#c47a3c', dirtDark: '#7a4a28', pebble: '#e2c29a',
-      waterTop: '#3ec6ea', waterDeep: '#0b5f86', glint: 'rgba(240,255,255,0.8)',
-      grade: 'rgba(255, 196, 120, 0.08)', vig: 0.55, shaft: true,
+      sky: ['#6aa4c4', '#8eb8cc', '#b7cdd8'], sun: '#e6d7a4', moon: null,
+      far: '#6a7c8c', near: '#6a7c8c', ridge: '#7d8e9c', snow: false,
+      leaf: '#2a5a3c', leafHi: '#3d6e4e', trunk: '#3a3028',
+      grass: '#3f8a42', grassHi: '#62a85a', dirt: '#8a5a34', dirtDark: '#6a4228', pebble: '#8a5a34',
+      waterTop: '#2f8aaa', waterDeep: '#14506c', glint: 'rgba(210,235,240,0.45)',
+      grade: 'rgba(0,0,0,0)', vig: 0.28, shaft: false,
     };
   }
 function T(id) {
@@ -65,23 +65,23 @@ function T(id) {
     g.fillRect(0, 0, W, H);
     const rand = rng(seed);
     if (!th.sun) {
-      for (let i = 0; i < 70; i++) {
-        const x = (rand() * W) | 0, y = (rand() * 120) | 0;
-        g.fillStyle = rand() > 0.8 ? '#fff' : 'rgba(255,255,255,0.7)';
-        g.fillRect(x, y, rand() > 0.85 ? 2 : 1, 1);
+      for (let i = 0; i < 22; i++) {
+        const x = (rand() * W) | 0, y = (rand() * 90) | 0;
+        g.fillStyle = 'rgba(220,225,235,0.55)';
+        g.fillRect(x, y, 1, 1);
       }
     }
     if (th.sun) {
-      g.fillStyle = '#fff4c4';
-      g.beginPath(); g.arc(390, 48, 16, 0, 7); g.fill();
       g.fillStyle = th.sun;
-      g.beginPath(); g.arc(390, 48, 11, 0, 7); g.fill();
+      g.fillRect(384, 40, 12, 12);
+      g.fillStyle = '#f3ead0';
+      g.fillRect(387, 43, 6, 6);
     }
     if (th.moon) {
       g.fillStyle = th.moon;
-      g.beginPath(); g.arc(400, 42, 12, 0, 7); g.fill();
+      g.fillRect(392, 34, 10, 10);
       g.fillStyle = th.sky[0];
-      g.beginPath(); g.arc(405, 40, 9, 0, 7); g.fill();
+      g.fillRect(396, 34, 6, 8);
     }
     return c;
   }
@@ -90,8 +90,8 @@ function T(id) {
     c.width = 700; c.height = 90;
     const g = c.getContext('2d');
     const rand = rng(seed + 3);
-    const col = th.sun ? 'rgba(255,255,255,0.85)' : 'rgba(210,216,230,0.35)';
-    for (let i = 0; i < 7; i++) {
+    const col = th.sun ? 'rgba(190,205,214,0.45)' : 'rgba(150,160,175,0.18)';
+    for (let i = 0; i < 3; i++) {
       const x = 20 + i * 100 + (rand() * 30) | 0;
       const y = 16 + (rand() * 30) | 0;
       g.fillStyle = col;
@@ -211,24 +211,17 @@ function T(id) {
     ctx.drawImage(img, x + w, y);
     if (x + w * 2 < W) ctx.drawImage(img, x + w * 2, y);
   }
-  function swayTree(ctx, img, x, y, t, i, sc) {
-    const s = Math.sin(t * 1.3 + i) * 2.2;
-    const w = img.width * sc, h = img.height * sc;
-    const cut = (h * 0.42) | 0;
-    ctx.drawImage(img, 0, 0, img.width, img.height * 0.42, x + s, y, w, cut);
-    ctx.drawImage(img, 0, img.height * 0.42, img.width, img.height * 0.58, x + s * 0.35, y + cut, w, h - cut);
-  }
-  function drawTrees(ctx, cam, ground, t, th, far) {
-    const factor = far ? 0.28 : 0.52;
-    const sc = far ? 0.72 : 1;
-    const n = far ? 10 : 8;
-    const span = 1400;
+  function drawTrees(ctx, cam, ground, t, th) {
+    const factor = 0.22;
+    const n = 6;
+    const span = 1600;
     for (let i = 0; i < n; i++) {
-      const world = i * (span / n) + (far ? 40 : 90);
-      const x = world - cam * factor;
-      const img = far ? pines[i % pines.length] : (i % 3 === 0 ? rounds[0] : pines[(i + 1) % pines.length]);
-      const y = ground - img.height * sc + (far ? 6 : 0);
-      if (x > -80 && x < W + 20) swayTree(ctx, img, x, y, t, i + (far ? 0 : 4), sc);
+      const world = i * (span / n) + 80;
+      const sway = Math.round(Math.sin(t * 0.8 + i) * 1);
+      const x = Math.round(world - cam * factor) + sway;
+      const img = pines[i % pines.length];
+      const y = Math.round(ground - img.height);
+      if (x > -80 && x < W + 20) ctx.drawImage(img, x, y);
     }
   }
   function hash(x) {
@@ -241,28 +234,15 @@ function T(id) {
     ctx.fillRect(x, y + (floating ? 9 : 16), w, floating ? 3 : 8);
     ctx.fillStyle = th.dirt;
     ctx.fillRect(x, y + 4, w, floating ? 7 : 14);
-    if (!floating) {
-      for (let i = x + 3; i < x + w; i += 9) {
-        if (hash(i) > 0.62) {
-          ctx.fillStyle = th.pebble;
-          ctx.fillRect(i, y + 8 + ((hash(i * 3) * 5) | 0), 2, 2);
-        }
-      }
-    }
-    ctx.fillStyle = '#1a120e';
+    ctx.fillStyle = '#1a140e';
     ctx.fillRect(x, y + 4, w, 1);
     ctx.fillStyle = th.grass;
     ctx.fillRect(x, y, w, 4);
     ctx.fillStyle = th.grassHi;
     ctx.fillRect(x, y, w, 1);
-    for (let i = x; i < x + w; i += 3) {
-      const h = 2 + ((hash(i) * 2) | 0) + ((Math.sin(t * 2.4 + i * 0.35) * 0.5 + 0.5) * 2 | 0);
-      ctx.fillStyle = hash(i + 2) > 0.5 ? th.grassHi : th.grass;
-      ctx.fillRect(i, y - h, 1, h);
-      if (!floating && hash(i + 11) > 0.86) {
-        ctx.fillStyle = hash(i) > 0.5 ? '#ffd056' : '#ff6d86';
-        ctx.fillRect(i, y - h - 1, 2, 2);
-      }
+    if (!floating) {
+      ctx.fillStyle = th.grassHi;
+      for (let i = x; i < x + w; i += 4) ctx.fillRect(i, y - 2, 1, 2);
     }
   }
 
@@ -273,50 +253,15 @@ function T(id) {
       prepare(themeId);
       const th = T(themeId);
       ctx.drawImage(sky, 0, 0);
-      if (th.shaft) {
-        ctx.save();
-        ctx.globalCompositeOperation = 'lighter';
-        ctx.globalAlpha = 0.10 + Math.sin(t * 0.6) * 0.02;
-        ctx.fillStyle = '#fff1c8';
-        ctx.beginPath();
-        ctx.moveTo(360, 0); ctx.lineTo(410, 0); ctx.lineTo(300, 168); ctx.lineTo(210, 168);
-        ctx.fill();
-        ctx.globalAlpha = 0.06;
-        ctx.beginPath();
-        ctx.moveTo(300, 0); ctx.lineTo(330, 0); ctx.lineTo(180, 168); ctx.lineTo(120, 168);
-        ctx.fill();
-        ctx.restore();
-      }
-      if (!th.sun) {
-        ctx.save();
-        ctx.globalCompositeOperation = 'lighter';
-        ctx.fillStyle = 'rgba(255,244,210,0.18)';
-        ctx.beginPath(); ctx.arc(400, 42, 36, 0, 7); ctx.fill();
-        ctx.restore();
-      }
-      blit(ctx, clouds, cam, 0.08, 18 + Math.sin(t * 0.4) * 2);
-      // birds on sunny days
-      if (th.sun) {
-        ctx.fillStyle = '#2c241c';
-        for (let i = 0; i < 3; i++) {
-          const x = ((i * 180 + t * 14) % (W + 40)) - 20;
-          const y = 36 + i * 10;
-          const flap = ((t * 6 + i) | 0) % 2;
-          ctx.fillRect(x, y, 2, 1);
-          ctx.fillRect(x - 2, y - flap, 2, 1);
-          ctx.fillRect(x + 2, y - flap, 2, 1);
-        }
-      }
+      blit(ctx, clouds, Math.round(cam), 0.06, 22);
       if (mid) mid();
-      blit(ctx, farMt, cam, 0.16, 58);
-      blit(ctx, nearMt, cam, 0.30, 72);
+      blit(ctx, farMt, Math.round(cam), 0.12, 78);
       return th;
     },
     drawTreesAt(ctx, camX, groundScreen, t, themeId) {
       prepare(themeId);
       const th = T(themeId);
-      drawTrees(ctx, camX, groundScreen - 18, t, th, true);
-      drawTrees(ctx, camX, groundScreen, t, th, false);
+      drawTrees(ctx, camX, groundScreen, t, th);
     },
     drawGround(ctx, x, y, w, themeId, t) {
       const th = T(themeId);
@@ -367,7 +312,7 @@ function T(id) {
       ctx.fillRect(x, surf, w, deep);
       // caustics
       ctx.fillStyle = th.glint;
-      for (let i = 0; i < 16; i++) {
+      for (let i = 0; i < 5; i++) {
         const px = x + ((i * 53 + t * 28) % w);
         const py = surf + 8 + ((i * 17) % Math.max(10, deep * 0.45)) + Math.sin(t * 2 + i) * 1.5;
         ctx.globalAlpha = 0.35;
@@ -382,17 +327,7 @@ function T(id) {
       }
       ctx.restore();
     },
-    frontGrass(ctx, camX, ground, t, themeId) {
-      const th = T(themeId);
-      ctx.fillStyle = th.grassHi;
-      for (let i = -20; i < W + 20; i += 4) {
-        const wx = i + camX * 1.15;
-        const h = 5 + ((hash(wx | 0) * 4) | 0) + ((Math.sin(t * 3 + wx * 0.2) + 1) | 0);
-        const x = i - ((camX * 1.15) % 4);
-        ctx.fillStyle = hash(wx) > 0.5 ? th.grassHi : th.grass;
-        ctx.fillRect(x, ground - h + 2, 1, h);
-      }
-    },
+    frontGrass() {},
     decor(ctx, kind, x, y, t) {
       if (kind === 'bush') {
         ctx.fillStyle = '#1d6b32';
