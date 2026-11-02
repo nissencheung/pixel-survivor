@@ -1,6 +1,8 @@
 # Notices
 
-**This demo.** The scrolling forest-and-lake map, hero, interface chrome, and WebAudio sound effects are original procedural pixel art and synthesis for this demo. They are not part of the pixelfx package.
+**This demo.** The forest-and-lake tiles, hero, and WebAudio sound effects are original and drawn with the pixelfx palette and a 1px outline. They are not part of the pixelfx package.
+
+**Fusion Pixel Font.** Chinese UI uses a subset of Fusion Pixel 8px by TakWolf, SIL Open Font License 1.1 (`LICENSE-fusion-pixel.txt`).
 
 **pixelfx.** Monster sprites, pickups, and the gun, blade, and magic effects in `assets/` (`manifest.js` and `src/weapon-manifest.js`) are from pixelfx by Patch & Hugo Duprez, MIT License (see `LICENSE-pixelfx.txt`). Weapon sheets were rendered from that repository with `tools/render.mjs --sheet --no-actor`.
 

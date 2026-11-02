@@ -2,7 +2,8 @@
 竖屏 9:16 像素割草肉鸽。纯 HTML5 Canvas2D + 原生 JS，无依赖，面向手机 60fps。
 - 运行：任意静态服务器打开 index.html（`python3 -m http.server`）。线上：<https://nissencheung.github.io/pixel-survivor/>
 - 操作：拖拽虚拟摇杆，或 WASD / 方向键。`M` 或右上角按钮开关音效。
-- `src/game.js` 游戏逻辑。逻辑分辨率 390×844，整数缩放、整数相机、最近邻。地图与英雄用约 24 色，1px 描边，像素大小与 pixelfx 精灵一致。
+- 画面先画在 180×390 的原生像素画布上，再按整数倍最近邻放大（手机上是 2 倍），英雄、地砖、文字和 pixelfx 特效共用同一像素大小。风格说明见 `docs/style-guide.md`。
+- 湖水能走：深水约 45% 移速并没过脚，浅滩约 75%。敌人在深水约 50%。火球入水熄灭，雷电对湿身敌人伤害 +50%。
 - 武器：手枪 / 霰弹 / 冲锋枪、飞刀 / 回旋刀、巨剑 / 环绕剑、火球、雷电，各 1–5 级；武器满级且对应被动达标会进化。`src/ads.js` 为广告占位（复活、双倍奖励、升级换一批）。
 - `assets/*.png` + `manifest.js` 为 pixelfx 精灵；`src/weapon-manifest.js` 为同库的枪械与刀剑特效。
 - 调试参数：`?debug` 显示帧率；`?autostart&t=280` 直接开局并跳到 4:40。

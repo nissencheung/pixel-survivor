@@ -4,45 +4,56 @@
 // 武器特效来自 pixelfx（MIT）：手枪/霰弹/飞刀/巨剑/回旋刀。英雄为同色板原创像素。
 (() => {
 'use strict';
-const BUILD = 'art-pass-2';
-const VW = 390, VH = 844;
+const BUILD = 'pixelfx-grid-3';
+const VW = 180, VH = 390;
 const GAME_LEN = 300;
-const TILE = 32, CHUNK = 8, CS = TILE * CHUNK;
-const GRASS = 0, FOREST = 1, PATH = 2, WATER = 3;
+const TILE = 16, CHUNK = 8, CS = TILE * CHUNK;
+const GRASS = 0, FOREST = 1, PATH = 2, SHALLOW = 4, WATER = 3;
+// Colors taken from opaque pixelfx pixels (see docs/style-guide.md).
 const PAL = {
-  ink: '#141018', paper: '#f4f0e8',
-  grass: '#2a6438', grassD: '#1e4a2c', grassL: '#3e8a48', leaf: '#6aaa44',
-  dirt: '#8a6238', dirtD: '#5c3e24', sand: '#e2c48a', sandD: '#a88850',
-  water: '#1a4e78', waterL: '#3a86c0', foam: '#d6e8f4',
-  rock: '#5a646e', rockL: '#9aa4b0',
-  flower: '#e86a8a', gold: '#f0c040', red: '#e04048',
-  skin: '#e8b898', skinD: '#c89070', hair: '#3a2418', hairL: '#6a4428',
-  coat: '#3a4a78', coatL: '#6a7ab8', coatD: '#242840',
-  pants: '#2a3344', boot: '#241810', metal: '#8a9098', metalL: '#d0d4dc',
+  ink: '#0c0912', paper: '#f2f2f2', white: '#ffffff',
+  grass: '#155a3f', grassD: '#113f26', grassL: '#2ba96c', leaf: '#59ff6a',
+  dirt: '#3d531e', dirtD: '#1a130a',
+  water: '#2f3b66', waterL: '#4a5d9a', foam: '#f2f2f2',
+  coat: '#33406e', coatL: '#acc3f2',
+  purple: '#392645', purpleL: '#5b3f66',
+  red: '#ae1c2e', redL: '#ff9aa1', redD: '#2e0e15',
+  orange: '#f2561d', gold: '#ffb236',
+  skin: '#ffdddb', hair: '#2e2426',
 };
-
-const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+const screen = document.getElementById('c');
+const view = document.createElement('canvas');
+view.width = VW; view.height = VH;
+const ctx = view.getContext('2d');
+ctx.imageSmoothingEnabled = false;
 const safeEl = document.getElementById('safe');
-let S = 1, OX = 0, OY = 0, SCALE = 1, SAFE = { t: 0, r: 0, b: 0, l: 0 };
+let SCALE = 2, SAFE = { t: 0, r: 0, b: 0, l: 0 };
 function resize() {
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  cv.width = Math.max(1, Math.round(innerWidth * dpr));
-  cv.height = Math.max(1, Math.round(innerHeight * dpr));
-  cv.style.width = innerWidth + 'px'; cv.style.height = innerHeight + 'px';
+  screen.width = Math.max(1, Math.round(innerWidth * dpr));
+  screen.height = Math.max(1, Math.round(innerHeight * dpr));
+  screen.style.width = innerWidth + 'px'; screen.style.height = innerHeight + 'px';
   const fit = Math.min(innerWidth / VW, innerHeight / VH);
-  SCALE = fit >= 1 ? Math.max(1, Math.floor(fit)) : fit;
-  S = SCALE * dpr;
-  OX = Math.round((cv.width - VW * S) / 2);
-  OY = Math.round((cv.height - VH * S) / 2);
+  SCALE = Math.max(1, Math.floor(fit));
   if (safeEl) {
-    const st = getComputedStyle(safeEl), sc = SCALE >= 1 ? SCALE : 1;
+    const st = getComputedStyle(safeEl);
     SAFE = {
-      t: (parseFloat(st.paddingTop) || 0) / sc,
-      r: (parseFloat(st.paddingRight) || 0) / sc,
-      b: (parseFloat(st.paddingBottom) || 0) / sc,
-      l: (parseFloat(st.paddingLeft) || 0) / sc,
+      t: (parseFloat(st.paddingTop) || 0) / SCALE,
+      r: (parseFloat(st.paddingRight) || 0) / SCALE,
+      b: (parseFloat(st.paddingBottom) || 0) / SCALE,
+      l: (parseFloat(st.paddingLeft) || 0) / SCALE,
     };
   }
+}
+function present() {
+  const sctx = screen.getContext('2d');
+  sctx.imageSmoothingEnabled = false;
+  sctx.fillStyle = '#000';
+  sctx.fillRect(0, 0, screen.width, screen.height);
+  const dpr = screen.width / innerWidth;
+  const dw = VW * SCALE * dpr, dh = VH * SCALE * dpr;
+  const ox = Math.round((screen.width - dw) / 2), oy = Math.round((screen.height - dh) / 2);
+  sctx.drawImage(view, 0, 0, VW, VH, ox, oy, dw, dh);
 }
 addEventListener('resize', resize); resize();
 addEventListener('gesturestart', e => e.preventDefault());
@@ -153,62 +164,35 @@ function bakeOutlined(draw, W, H) {
     if (d[i + 3] > 20) continue;
     let edge = false;
     if (d[i + 4] > 20 || d[i - 4] > 20 || d[i + W * 4 + 3] > 20 || d[i - W * 4 + 3] > 20) edge = true;
-    if (edge) { o[i] = 0x14; o[i + 1] = 0x10; o[i + 2] = 0x18; o[i + 3] = 255; }
+    if (edge) { o[i] = 0x0c; o[i + 1] = 0x09; o[i + 2] = 0x12; o[i + 3] = 255; }
   }
   img.data.set(o); g.putImageData(img, 0, 0); return c;
 }
+const HERO_ROWS = [
+  ['...hh....', '..hhhh...', '..hkkh...', '..heeh...', '..hkkh...', '..rrrr...', '.cccccc..', '.ccLLccg.', '.ccccccg.', '..c..c...', '..p..p...', '..b..b...'],
+  ['...hh....', '..hhhh...', '..hkkh...', '..heeh...', '..hkkh...', '..rrrr...', '.cccccc..', '.ccLLccg.', '.ccccccg.', '..c..c...', '.p.......', '..b......', '....p....', '.....b...'],
+  ['...hh....', '..hhhh...', '..hkkh...', '..heeh...', '..hkkh...', '..rrrr...', '.cccccc..', '.ccLLccg.', '.ccccccg.', '..c..c...', '..p..p...', '..b..b...'],
+  ['...hh....', '..hhhh...', '..hkkh...', '..heeh...', '..hkkh...', '..rrrr...', '.cccccc..', '.ccLLccg.', '.ccccccg.', '..c..c...', '......p..', '.......b.', '..p......', '...b.....'],
+];
 function paintHeroFrame(g, frame) {
-  const bob = (frame === 1 || frame === 3) ? -1 : 0;
-  const z = n => Math.round(n * 1.65);
-  const R = (col, x, yy, w, h) => { g.fillStyle = col; g.fillRect(z(x), z(yy) + bob, Math.max(1, z(w)), Math.max(1, z(h))); };
-  const y = 3;
-  R(PAL.hair, 12, y, 14, 5);
-  R(PAL.hairL, 14, y, 8, 1);
-  R(PAL.hair, 9, y + 4, 20, 2);
-  R(PAL.skin, 12, y + 6, 14, 9);
-  R(PAL.skinD, 12, y + 13, 14, 2);
-  R(PAL.ink, 15, y + 9, 2, 2); R(PAL.ink, 21, y + 9, 2, 2);
-  R(PAL.skinD, 17, y + 12, 4, 1);
-  R(PAL.red, 11, y + 15, 16, 3);
-  R(PAL.red, 9, y + 16, 3, 5 + (frame % 2));
-  R(PAL.coat, 10, y + 18, 18, 13);
-  R(PAL.coatL, 11, y + 18, 16, 3);
-  R(PAL.gold, 17, y + 22, 4, 3);
-  R(PAL.coatD, 7, y + 20, 4, 9);
-  R(PAL.coatD, 27, y + 20, 4, 9);
-  const step = [[12, 26], [9, 28], [13, 25], [11, 29]][frame] || [12, 26];
-  R(PAL.pants, step[0], y + 31, 5, 7);
-  R(PAL.pants, step[1], y + 31, 5, 7);
-  R(PAL.boot, step[0] - 1, y + 37, 7, 3);
-  R(PAL.boot, step[1] - 1, y + 37, 7, 3);
-  R(PAL.dirt, step[0], y + 37, 4, 1);
-  R(PAL.metal, 28, y + 24, 10, 3);
-  R(PAL.metalL, 36, y + 24, 4, 2);
-  R(PAL.gold, 30, y + 23, 2, 1);
+  const map = { h: PAL.hair, k: PAL.skin, e: PAL.ink, r: PAL.red, c: PAL.coat, L: PAL.coatL, p: PAL.purple, b: PAL.ink, g: PAL.paper };
+  const rows = HERO_ROWS[frame] || HERO_ROWS[0];
+  rows.forEach((row, j) => { for (let i = 0; i < row.length; i++) { const col = map[row[i]]; if (!col) continue; g.fillStyle = col; g.fillRect(2 + i, 2 + j, 1, 1); } });
 }
 function bakeArt() {
-  for (let f = 0; f < 4; f++) HERO.push(bakeOutlined(g => paintHeroFrame(g, f), 78, 86));
-  heroOx = 39; heroOy = 80;
-  shadowSpr = bakeOutlined(g => { g.fillStyle = 'rgba(20,16,24,0.45)'; g.fillRect(6, 2, 20, 4); g.fillRect(4, 3, 24, 2); }, 32, 8);
-  const trees = [];
-  const blob = (g, cx, cy, r, col) => {
-    g.fillStyle = col;
-    for (let yy = -r; yy <= r; yy++) for (let xx = -r; xx <= r; xx++) if (xx * xx + yy * yy <= r * r) g.fillRect(cx + xx, cy + yy, 1, 1);
-  };
-  for (let k = 0; k < 3; k++) trees.push(bakeOutlined(g => {
-    g.fillStyle = 'rgba(20,16,24,0.35)'; g.fillRect(12, 44, 20, 4);
-    g.fillStyle = PAL.dirtD; g.fillRect(20, 30, 5, 16);
-    g.fillStyle = PAL.dirt; g.fillRect(20, 30, 2, 16);
-    if (k === 1) { blob(g, 22, 16, 14, PAL.grassD); blob(g, 20, 14, 9, PAL.grass); blob(g, 16, 12, 4, PAL.leaf); }
-    else if (k === 2) { blob(g, 14, 26, 10, PAL.grassD); blob(g, 28, 24, 9, PAL.grass); blob(g, 20, 18, 7, PAL.leaf); g.fillStyle = PAL.flower; g.fillRect(16, 22, 3, 3); }
-    else { blob(g, 22, 18, 15, PAL.grassD); blob(g, 20, 16, 11, PAL.grass); blob(g, 16, 13, 4, PAL.leaf); }
-  }, 48, 56));
+  for (let f = 0; f < 4; f++) HERO.push(bakeOutlined(g => paintHeroFrame(g, f), 16, 18));
+  heroOx = 8; heroOy = 16;
+  shadowSpr = document.createElement('canvas'); shadowSpr.width = 8; shadowSpr.height = 3;
+  const sg = shadowSpr.getContext('2d'); sg.fillStyle = PAL.ink; sg.fillRect(1, 1, 6, 1); sg.fillRect(2, 0, 4, 1); sg.fillRect(2, 2, 4, 1);
+  const blob = (g, cx, cy, r, col) => { g.fillStyle = col; for (let yy = -r; yy <= r; yy++) for (let xx = -r; xx <= r; xx++) if (xx * xx + yy * yy <= r * r) g.fillRect(cx + xx, cy + yy, 1, 1); };
+  const trees = [0, 1, 2].map(k => bakeOutlined(g => {
+    g.fillStyle = PAL.dirtD; g.fillRect(6, 9, 2, 4);
+    if (k === 1) { blob(g, 7, 6, 4, PAL.grassD); blob(g, 6, 5, 2, PAL.grassL); }
+    else if (k === 2) { blob(g, 4, 8, 3, PAL.grassD); blob(g, 9, 7, 3, PAL.grass); g.fillStyle = PAL.red; g.fillRect(5, 7, 1, 1); }
+    else { blob(g, 7, 6, 5, PAL.grassD); blob(g, 6, 5, 3, PAL.grass); g.fillStyle = PAL.grassL; g.fillRect(5, 4, 2, 1); }
+  }, 16, 16));
   window.__TREES = trees;
-  vignette = document.createElement('canvas'); vignette.width = VW; vignette.height = VH;
-  const vg = vignette.getContext('2d');
-  const grd = vg.createRadialGradient(VW / 2, VH * 0.42, VW * 0.2, VW / 2, VH * 0.48, VH * 0.68);
-  grd.addColorStop(0, 'rgba(20,16,24,0)'); grd.addColorStop(1, 'rgba(20,16,24,0.55)');
-  vg.fillStyle = grd; vg.fillRect(0, 0, VW, VH);
+  vignette = null;
 }
 function drawHero(x, y, frame, face, hurt) {
   const im = HERO[frame] || HERO[0];
@@ -232,7 +216,19 @@ function drawHero(x, y, frame, face, hurt) {
 }
 function drawTree(t) {
   const im = window.__TREES[t.kind]; if (!im) return;
-  ctx.drawImage(im, Math.round(t.x - 24), Math.round(t.y - 52));
+  ctx.drawImage(im, Math.round(t.x - 8), Math.round(t.y - 14));
+}
+function clipWade(x, y, depth, fn) {
+  if (!depth) { fn(); return; }
+  const cut = depth === 2 ? 5 : 2;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(Math.round(x) - 36, Math.round(y) - 40, 72, 40 - cut);
+  ctx.clip();
+  fn();
+  ctx.restore();
+  ctx.fillStyle = PAL.foam;
+  ctx.fillRect(Math.round(x) - 6, Math.round(y) - cut, 12, 1);
 }
 
 // ---------- map ----------
@@ -247,12 +243,26 @@ const PONDS = [
   { x: -8, y: 6, rx: 4, ry: 3 },
   { x: 16, y: -4, rx: 4.5, ry: 3 },
 ];
-function isWater(tx, ty) {
+function pondT(tx, ty) {
   const dx0 = tx - 5, dy0 = ty - 9;
-  if (dx0 * dx0 + dy0 * dy0 < 6) return false;
-  for (const p of PONDS) { const dx = (tx - p.x) / p.rx, dy = (ty - p.y) / p.ry; if (dx * dx + dy * dy < 1) return true; }
-  return false;
+  if (dx0 * dx0 + dy0 * dy0 < 5) return 9;
+  let best = 9;
+  for (const p of PONDS) { const dx = (tx - p.x) / p.rx, dy = (ty - p.y) / p.ry; best = Math.min(best, Math.hypot(dx, dy)); }
+  return best;
 }
+function isWater(tx, ty) { return pondT(tx, ty) < 0.78; }
+function isShallow(tx, ty) { const t = pondT(tx, ty); return t >= 0.78 && t < 1.02; }
+function terrainAt(x, y) {
+  const tx = Math.floor(x / TILE), ty = Math.floor(y / TILE);
+  if (isWater(tx, ty)) return WATER;
+  if (isShallow(tx, ty)) return SHALLOW;
+  if (isPath(tx, ty)) return PATH;
+  if (inForest(tx, ty)) return FOREST;
+  return GRASS;
+}
+function wetKind(x, y) { const t = terrainAt(x, y); return t === WATER ? 2 : t === SHALLOW ? 1 : 0; }
+function playerWaterMul(x, y) { const w = wetKind(x, y); return w === 2 ? 0.45 : w === 1 ? 0.75 : 1; }
+function enemyWaterMul(x, y) { const w = wetKind(x, y); return w === 2 ? 0.5 : w === 1 ? 0.75 : 1; }
 function isPath(tx, ty) {
   const cx = 5 + Math.round(Math.sin(ty * 0.35) * 1);
   if (tx === cx || tx === cx + 1) return true;
@@ -268,6 +278,7 @@ function inForest(tx, ty) {
 }
 function cellType(tx, ty) {
   if (isWater(tx, ty)) return WATER;
+  if (isShallow(tx, ty)) return SHALLOW;
   if (isPath(tx, ty)) return PATH;
   if (inForest(tx, ty)) return FOREST;
   return GRASS;
@@ -285,52 +296,32 @@ function trimChunks(camX, camY) {
 }
 function paintCell(g, x, y, tp, tx, ty, at, i, j) {
   const h = hash2(tx, ty);
-  const wn = at(i, j - 1) === WATER, ws = at(i, j + 1) === WATER, ww = at(i - 1, j) === WATER, we = at(i + 1, j) === WATER;
-  const shore = wn || ws || ww || we;
-  if (tp === WATER) {
-    g.fillStyle = PAL.water;
-    g.fillRect(x, y, 32, 32);
-    if (h > 0.86 && !shore) { g.fillStyle = PAL.leaf; g.fillRect(x + 12, y + 14, 8, 4); g.fillStyle = PAL.flower; g.fillRect(x + 14, y + 12, 3, 3); }
+  const T = 16;
+  if (tp === WATER) { g.fillStyle = PAL.water; g.fillRect(x, y, T, T); return; }
+  if (tp === SHALLOW) {
+    g.fillStyle = PAL.waterL; g.fillRect(x, y, T, T);
+    g.fillStyle = PAL.foam;
+    if (at(i, j - 1) === WATER) g.fillRect(x, y, T, 1);
+    if (at(i, j + 1) === WATER) g.fillRect(x, y + T - 1, T, 1);
+    if (at(i - 1, j) === WATER) g.fillRect(x, y, 1, T);
+    if (at(i + 1, j) === WATER) g.fillRect(x + T - 1, y, 1, T);
+    g.fillStyle = PAL.ink;
+    if (at(i, j - 1) !== WATER && at(i, j - 1) !== SHALLOW) g.fillRect(x, y, T, 1);
     return;
   }
   if (tp === PATH) {
-    g.fillStyle = PAL.dirt; g.fillRect(x, y, 32, 32);
+    g.fillStyle = PAL.dirt; g.fillRect(x, y, T, T);
     g.fillStyle = PAL.dirtD;
-    if (at(i, j - 1) !== PATH) g.fillRect(x, y, 32, 1);
-    if (at(i, j + 1) !== PATH) g.fillRect(x, y + 31, 32, 1);
-    if (at(i - 1, j) !== PATH) g.fillRect(x, y, 1, 32);
-    if (at(i + 1, j) !== PATH) g.fillRect(x + 31, y, 1, 32);
-    if (h > 0.7) { g.fillStyle = PAL.sand; g.fillRect(x + 8 + ((h * 10) | 0), y + 14, 3, 2); }
+    if (at(i, j - 1) !== PATH) g.fillRect(x, y, T, 1);
+    if (at(i, j + 1) !== PATH) g.fillRect(x, y + T - 1, T, 1);
+    if (at(i - 1, j) !== PATH) g.fillRect(x, y, 1, T);
+    if (at(i + 1, j) !== PATH) g.fillRect(x + T - 1, y, 1, T);
     return;
   }
   g.fillStyle = tp === FOREST ? PAL.grassD : PAL.grass;
-  g.fillRect(x, y, 32, 32);
-  if (h > 0.55) { g.fillStyle = PAL.grassL; g.fillRect(x + 6 + ((h * 16) | 0), y + 8 + ((hash2(tx, ty + 3) * 14) | 0), 2, 3); }
-  if (!shore && tp === GRASS && h > 0.9) {
-    const fx = x + 8 + ((hash2(tx + 2, ty) * 14) | 0), fy = y + 10 + ((hash2(ty, tx) * 10) | 0);
-    g.fillStyle = PAL.grassD; g.fillRect(fx + 2, fy + 3, 1, 4);
-    g.fillStyle = h > 0.96 ? PAL.gold : PAL.flower; g.fillRect(fx, fy, 5, 3);
-    g.fillStyle = PAL.paper; g.fillRect(fx + 2, fy + 1, 1, 1);
-  } else if (!shore && h < 0.04) {
-    g.fillStyle = PAL.rock; g.fillRect(x + 10, y + 16, 10, 6);
-    g.fillStyle = PAL.rockL; g.fillRect(x + 10, y + 16, 10, 2);
-    g.fillStyle = PAL.ink; g.fillRect(x + 10, y + 21, 10, 1);
-  }
-  if (shore) {
-    g.fillStyle = PAL.sand;
-    if (wn) g.fillRect(x, y, 32, 5);
-    if (ws) g.fillRect(x, y + 27, 32, 5);
-    if (ww) g.fillRect(x, y, 5, 32);
-    if (we) g.fillRect(x + 27, y, 5, 32);
-    g.fillStyle = PAL.foam;
-    if (wn) g.fillRect(x, y, 32, 1);
-    if (ws) g.fillRect(x, y + 31, 32, 1);
-    if (ww) g.fillRect(x, y, 1, 32);
-    if (we) g.fillRect(x + 31, y, 1, 32);
-    g.fillStyle = PAL.ink;
-    if (wn) g.fillRect(x, y + 5, 32, 1);
-    if (ws) g.fillRect(x, y + 26, 32, 1);
-  }
+  g.fillRect(x, y, T, T);
+  if (h > 0.72) { g.fillStyle = PAL.grassL; g.fillRect(x + 3 + ((h * 8) | 0), y + 4 + ((hash2(tx, ty + 2) * 7) | 0), 1, 2); }
+  if (tp === GRASS && h > 0.93) { g.fillStyle = PAL.red; g.fillRect(x + 6, y + 6, 2, 2); g.fillStyle = PAL.gold; g.fillRect(x + 6, y + 6, 1, 1); }
 }
 function buildChunk(cx, cy) {
   const cvn = document.createElement('canvas'); cvn.width = CS; cvn.height = CS;
@@ -342,7 +333,7 @@ function buildChunk(cx, cy) {
   for (let j = 0; j < CHUNK; j++) for (let i = 0; i < CHUNK; i++) {
     const tx = cx * CHUNK + i, ty = cy * CHUNK + j, tp = at(i, j);
     paintCell(g, i * TILE, j * TILE, tp, tx, ty, at, i, j);
-    if (tp === WATER) water.push({ x: tx * TILE, y: ty * TILE, tx, ty });
+    if (tp === WATER || tp === SHALLOW) water.push({ x: tx * TILE, y: ty * TILE, tx, ty, deep: tp === WATER });
     else if (tp === FOREST) {
       const hh = hash2(tx + 11, ty + 19);
       if (hh < 0.16) trees.push({ x: tx * TILE + 16, y: ty * TILE + 30, kind: hh > 0.1 ? 2 : hh > 0.05 ? 1 : 0 });
@@ -362,13 +353,11 @@ function drawTerrain(camX, camY, treeOut) {
   for (let cy = r0; cy <= r1; cy++) for (let cx = c0; cx <= c1; cx++) {
     const ch = getChunk(cx, cy);
     ctx.drawImage(ch.cv, cx * CS, cy * CS);
-    ctx.fillStyle = PAL.foam;
+    ctx.fillStyle = PAL.coatL;
     for (let i = 0; i < ch.water.length; i++) {
       const w = ch.water[i];
-      if (((w.tx + w.ty + phase) & 3) !== 0) continue;
-      const ox = (w.tx * 7 + phase * 5) & 18;
-      const oy = (w.ty * 5 + phase * 3) & 18;
-      ctx.fillRect(w.x + 6 + ox, w.y + 6 + oy, 3, 3);
+      if (!w.deep || ((w.tx + w.ty + phase) & 3) !== 0) continue;
+      ctx.fillRect(w.x + 2 + ((w.tx * 3 + phase * 2) & 7), w.y + 2 + ((w.ty * 5 + phase) & 7), 1, 1);
     }
     if (treeOut) {
       const x0 = camX - VW / 2 - 40, x1 = camX + VW / 2 + 40, y0 = camY - VH / 2 - 60, y1 = camY + VH / 2 + 20;
@@ -381,8 +370,10 @@ function drawTerrain(camX, camY, treeOut) {
 // ---------- input ----------
 const input = { active: false, bx: 0, by: 0, px: 0, py: 0, keys: {}, taps: [] };
 function toView(e) {
-  const dpr = cv.width / innerWidth;
-  return [((e.clientX * dpr) - OX) / S, ((e.clientY * dpr) - OY) / S];
+  const dpr = screen.width / innerWidth;
+  const dw = VW * SCALE * dpr, dh = VH * SCALE * dpr;
+  const ox = (screen.width - dw) / 2, oy = (screen.height - dh) / 2;
+  return [(e.clientX * dpr - ox) / (SCALE * dpr), (e.clientY * dpr - oy) / (SCALE * dpr)];
 }
 function pdown(x, y, touch) {
   input.taps.push([x, y]);
@@ -390,7 +381,7 @@ function pdown(x, y, touch) {
 }
 function pmove(x, y) { if (!input.active) return; input.px = x; input.py = y; }
 function pup() { input.active = false; }
-cv.addEventListener('pointerdown', e => {
+screen.addEventListener('pointerdown', e => {
   tryFs(); Snd.ensure();
   if (e.pointerType === 'touch') e.preventDefault();
   pdown(...toView(e), e.pointerType === 'touch');
@@ -459,6 +450,8 @@ const Snd = {
     else if (name === 'wave') [392, 523, 659, 784].forEach((f, i) => this.tone(f, 0.14, 'triangle', 0.05, i * 0.08));
     else if (name === 'ui') this.tone(740, 0.03, 'square', 0.03);
     else if (name === 'boss') { this.tone(90, 0.35, 'sawtooth', 0.05); this.tone(140, 0.3, 'square', 0.03, 0.05); }
+    else if (name === 'wade') { this.burst(0.04, 0.05); this.tone(180, 0.05, 'triangle', 0.02); }
+    else if (name === 'fizz') { this.burst(0.06, 0.07); this.tone(420, 0.08, 'square', 0.03, 0, 120); }
     else if (name === 'shot') { this.burst(0.05, 0.09); this.tone(180, 0.06, 'square', 0.04); }
   },
   music(dt) {
@@ -521,12 +514,12 @@ const EVOLVES = [
 ];
 const MAXLV = 5;
 const ENEMY = {
-  slime: { hp: 18, sp: 36, dmg: 6, sc: 1, xp: 2, r: 22, col: '#7dff6a' },
-  bat: { hp: 14, sp: 62, dmg: 6, sc: 1, xp: 2, r: 20, col: '#d2c0ff' },
-  ghost: { hp: 36, sp: 44, dmg: 9, sc: 1, xp: 4, r: 22, col: '#d8f0ff' },
-  'flying-skull': { hp: 52, sp: 54, dmg: 11, sc: 1, xp: 5, r: 22, col: '#ffe0b0' },
-  wisp: { hp: 64, sp: 70, dmg: 10, sc: 1, xp: 6, r: 20, col: '#ffe14a' },
-  eyeball: { hp: 2600, sp: 32, dmg: 18, sc: 1, xp: 0, r: 36, col: '#e060ff', boss: true },
+  slime: { hp: 18, sp: 16, dmg: 6, sc: 1, xp: 2, r: 16, col: '#59ff6a' },
+  bat: { hp: 14, sp: 26, dmg: 6, sc: 1, xp: 2, r: 14, col: '#8a608a' },
+  ghost: { hp: 36, sp: 18, dmg: 9, sc: 1, xp: 4, r: 16, col: '#acc3f2' },
+  'flying-skull': { hp: 52, sp: 22, dmg: 11, sc: 1, xp: 5, r: 16, col: '#ffb236' },
+  wisp: { hp: 64, sp: 28, dmg: 10, sc: 1, xp: 6, r: 14, col: '#ffff8b' },
+  eyeball: { hp: 2600, sp: 12, dmg: 18, sc: 1, xp: 0, r: 22, col: '#f2f2f2', boss: true },
 };
 const META_DEFS = [
   { id: 'hp', name: '强壮体魄', desc: '最大生命 +15', max: 5, cost: lv => 12 + lv * 10 },
@@ -552,7 +545,7 @@ function xpToNext(lv) { if (lv <= 3) return 4 + lv * 2; if (lv <= 7) return 10 +
 function newGame() {
   const maxhp = 100 + (meta.hp || 0) * 15;
   G = {
-    t: 0, p: { x: 160, y: 300, hp: maxhp, maxhp, face: 1, aim: 0, inv: 1.2, walk: 0, moving: 0, kbx: 0, kby: 0, hurt: 0 },
+    t: 0, p: { x: 80, y: 148, hp: maxhp, maxhp, face: 1, aim: 0, inv: 1.2, walk: 0, moving: 0, kbx: 0, kby: 0, hurt: 0, wet: 0, wade: 0 },
     lv: 1, xp: 0, need: xpToNext(1), skills: { pistol: 1 }, cd: { pistol: 0.2 }, cdMax: { pistol: 0.42 },
     enemies: [], shots: [], orbs: [], fx: [], nums: [], zones: [], bolts: [], parts: [], corpses: [], banners: [], blades: [],
     kills: 0, maxCombo: 0, combo: 0, comboT: 0, score: 0, coins: 0, dealt: 0,
@@ -708,10 +701,12 @@ function castSkills(dt) {
       let [t, dist] = nearest(G.p.x, G.p.y);
       if (!t || dist > 340) ok = false; else {
         const hit = new Set(); let fx = G.p.x, fy = G.p.y - 10;
-        const jumps = (k === 'chainX' ? 4 : 2) + l, dmg = mulD(9 + l * 4);
+        const jumps = (k === 'chainX' ? 4 : 2) + l;
         for (let i = 0; i < jumps && t; i++) {
           hit.add(t); G.bolts.push({ x1: fx, y1: fy, x2: t.x, y2: t.y, t: 0.14 });
-          addFx('zap-hit', t.x, t.y, { sc: 1 }); hurt(t, dmg, fx, fy); fx = t.x; fy = t.y;
+          addFx('zap-hit', t.x, t.y, { sc: 1 });
+          const zap = mulD(9 + l * 4) * (wetKind(t.x, t.y) ? 1.5 : 1);
+          hurt(t, zap, fx, fy); fx = t.x; fy = t.y;
           const r = nearest(fx, fy, hit); t = r[1] < 180 ? r[0] : null;
         }
         setCd(k, (k === 'chainX' ? 1.05 : 1.35) * cdMul());
@@ -771,8 +766,8 @@ function pickEnemy(t) {
 }
 function spawn(k) {
   const a = Math.random() * Math.PI * 2, d = ENEMY[k];
-  const rx = (d.boss ? 280 : 220) + Math.random() * 40;
-  const ry = (d.boss ? 520 : 460) + Math.random() * 30;
+  const rx = (d.boss ? 120 : 96) + Math.random() * 12;
+  const ry = (d.boss ? 230 : 206) + Math.random() * 10;
   const e = { k, x: G.p.x + Math.cos(a) * rx, y: G.p.y + Math.sin(a) * ry, hp: d.hp * (d.boss ? 1 : hpMul(G.t)), t: Math.random() * 3, slow: 0, flash: 0, boss: !!d.boss, kbx: 0, kby: 0, oh: 0 };
   e.maxhp = e.hp; G.enemies.push(e); return e;
 }
@@ -806,7 +801,7 @@ function update(dt) {
   }
   if (G.nextMark < MARKS.length && G.kills >= MARKS[G.nextMark]) {
     const n = MARKS[G.nextMark], c = MARK_COIN[G.nextMark]; G.nextMark++; G.coins += c;
-    banner(`击杀 ${n}`, `+${c} 金币`, PAL.flower); Snd.play('coin');
+    banner(`击杀 ${n}`, `+${c} 金币`, PAL.redL); Snd.play('coin');
   }
   G.heartT += dt;
   if (G.heartT > 34 && p.hp < p.maxhp * 0.82) {
@@ -815,9 +810,18 @@ function update(dt) {
   }
   const [mx, my] = moveVec(); const moving = Math.hypot(mx, my); p.moving = moving;
   if (moving > 0.15) { p.walk += dt * 10; p.aim = Math.atan2(my, mx); p.face = mx >= 0 ? 1 : -1; }
-  const sp = 125 * (1 + lvOf('speed') * 0.12);
+  const sp = 46 * (1 + lvOf('speed') * 0.12);
+  const wm = playerWaterMul(p.x, p.y);
+  p.wet = wetKind(p.x, p.y);
   p.kbx *= Math.pow(0.05, dt); p.kby *= Math.pow(0.05, dt);
-  p.x += mx * sp * dt + p.kbx * dt; p.y += my * sp * dt + p.kby * dt;
+  p.x += mx * sp * wm * dt + p.kbx * dt; p.y += my * sp * wm * dt + p.kby * dt;
+  if (p.wet && moving > 0.2) {
+    p.wade -= dt;
+    if (p.wade <= 0) {
+      p.wade = 0.16; Snd.play('wade');
+      if (G.parts.length < 150) G.parts.push({ x: p.x, y: p.y, vx: (Math.random() - 0.5) * 18, vy: -8 - Math.random() * 10, life: 0.25, col: PAL.foam, g: 30 });
+    }
+  }
   p.inv -= dt; p.hurt = Math.max(0, p.hurt - dt);
   G.comboT -= dt; if (G.comboT <= 0) G.combo = 0;
   spawner(dt); castSkills(dt); tickOrbit(dt);
@@ -825,7 +829,8 @@ function update(dt) {
     if (e.dead) continue;
     const d = ENEMY[e.k]; e.t += dt; e.flash -= dt; e.oh = (e.oh || 0) - dt; e.slow = Math.max(0, e.slow - dt);
     const dx = p.x - e.x, dy = p.y - e.y, L = Math.hypot(dx, dy) || 1;
-    const s = d.sp * (e.slow > 0 ? 0.45 : 1) * (e.boss ? 1 : spdMul(G.t));
+    e.wet = wetKind(e.x, e.y);
+    const s = d.sp * enemyWaterMul(e.x, e.y) * (e.slow > 0 ? 0.45 : 1) * (e.boss ? 1 : spdMul(G.t));
     e.kbx *= Math.pow(0.05, dt); e.kby *= Math.pow(0.05, dt);
     e.x += dx / L * s * dt + e.kbx * dt; e.y += dy / L * s * dt + e.kby * dt;
     if (L > 1100 && !e.boss) { e.dead = true; continue; }
@@ -855,6 +860,9 @@ function update(dt) {
     }
     if (s.ret && !s.back && s.age > s.ret) { s.vx *= -1; s.vy *= -1; s.back = true; s.hit = new Set(); }
     s.x += s.vx * dt; s.y += s.vy * dt;
+    if ((s.spr === 'fireball' || s.boom) && terrainAt(s.x, s.y) === WATER) {
+      burst(s.x, s.y, PAL.coatL, 5, 16); Snd.play('fizz'); s.life = 0; continue;
+    }
     for (const e of G.enemies) {
       if (e.dead) continue;
       if (s.hit && s.hit.has(e)) continue;
@@ -883,7 +891,7 @@ function update(dt) {
     const c = G.corpses[i]; c.dying -= dt; c.x += (c.kbx || 0) * dt; c.y += (c.kby || 0) * dt;
     if (c.dying <= 0) G.corpses.splice(i, 1);
   }
-  const mag = 110 * (1 + lvOf('magnet') * 0.3 + (G.magBonus || 0));
+  const mag = 40 * (1 + lvOf('magnet') * 0.3 + (G.magBonus || 0));
   for (const o of G.orbs) {
     o.t += dt; const dx = p.x - o.x, dy = p.y - o.y, L = Math.hypot(dx, dy) || 1;
     const pull = L < mag || o.pull || o.t > 0.9;
@@ -975,11 +983,55 @@ function pxText(str, x, y, col, scale, align) {
   };
   draw(scale, scale, PAL.ink); draw(0, 0, col);
 }
-const font = (px, bold) => `${bold ? 'bold ' : ''}${px}px "PingFang SC","Microsoft YaHei",sans-serif`;
-function txt(s, x, y, px, col = PAL.paper, align = 'center', bold = true) {
-  ctx.font = font(px, bold); ctx.textAlign = align; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
-  ctx.lineWidth = px >= 22 ? 5 : px >= 16 ? 4 : 3; ctx.strokeStyle = PAL.ink; ctx.strokeText(s, x, y);
-  ctx.fillStyle = col; ctx.fillText(s, x, y);
+const GLY = new Map();
+try {
+  const face = new FontFace('FusionPixel', 'url(assets/fusion-pixel-8.ttf)');
+  face.load().then(f => { document.fonts.add(f); GLY.clear(); }).catch(() => {});
+} catch (e) {}
+const ASC = {
+  '0': '111101101101111', '1': '010010010010010', '2': '111001111100111', '3': '111001111001111',
+  '4': '101101111001001', '5': '111100111001111', '6': '111100111101111', '7': '111001001001001',
+  '8': '111101111101111', '9': '111101111001111',
+  'A': '010101111101101', 'B': '110101110101110', 'C': '111100100100111', 'D': '110101101101110',
+  'E': '111100111100111', 'F': '111100111100100', 'G': '111100101101111', 'H': '101101111101101',
+  'I': '111010010010111', 'J': '111001001001110', 'K': '101101110101101', 'L': '100100100100111',
+  'M': '101111101101101', 'N': '101111111101101', 'O': '111101101101111', 'P': '111101111100100',
+  'Q': '111101101111011', 'R': '111101110101101', 'S': '111100111001111', 'T': '111010010010010',
+  'U': '101101101101111', 'V': '101101101010010', 'W': '101101101111101', 'X': '101101010101101',
+  'Y': '101101010010010', 'Z': '111001010100111',
+  '+': '000010111010000', '-': '000000111000000', 'x': '101010010101101', ':': '000010000010000',
+  '.': '000000000000010', '/': '001001010100100', ' ': '000000000000000',
+};
+function glyphOf(ch) {
+  const u = ASC[ch] || ASC[ch.toUpperCase()];
+  if (u && u.length === 15) return { w: 3, h: 5, bits: u.split('').map(Number) };
+  if (GLY.has(ch)) return GLY.get(ch);
+  const w = 8, h = 8, c = document.createElement('canvas'); c.width = w; c.height = h;
+  const g = c.getContext('2d', { willReadFrequently: true });
+  const ready = document.fonts && document.fonts.check && document.fonts.check('8px FusionPixel');
+  g.font = ready ? '8px FusionPixel' : '8px sans-serif';
+  g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText(ch, w / 2, h / 2 + (ready ? 0 : 1));
+  const d = g.getImageData(0, 0, w, h).data, bits = [];
+  for (let i = 0; i < w * h; i++) bits.push(d[i * 4 + 3] > (ready ? 40 : 140) ? 1 : 0);
+  const rec = { w, h, bits };
+  if (ready) GLY.set(ch, rec);
+  return rec;
+}
+function textWidth(s, scale) { let w = 0; for (const ch of String(s)) w += (glyphOf(ch).w + 1) * scale; return Math.max(0, w - scale); }
+function txt(s, x, y, px, col = PAL.paper, align = 'center') {
+  const scale = px >= 16 ? 2 : 1;
+  const str = String(s);
+  const tw = textWidth(str, scale);
+  let ox = align === 'right' ? Math.round(x - tw) : align === 'left' ? Math.round(x) : Math.round(x - tw / 2);
+  const gh = glyphOf(str[0] || ' ').h * scale;
+  const oy = Math.round(y - gh / 2);
+  ctx.fillStyle = col || PAL.paper;
+  for (const ch of str) {
+    const g = glyphOf(ch);
+    for (let i = 0; i < g.bits.length; i++) if (g.bits[i]) ctx.fillRect(ox + (i % g.w) * scale, oy + ((i / g.w) | 0) * scale, scale, scale);
+    ox += (g.w + 1) * scale;
+  }
 }
 function box(x, y, w, h, bg, edge) {
   ctx.fillStyle = PAL.ink; ctx.fillRect(x - 2, y - 2, w + 4, h + 4);
@@ -1017,8 +1069,8 @@ function drawWorld() {
   for (const it of pile) {
     if (it.k === 't') drawTree(it.o);
     else if (it.k === 'p') {
-      const fr = p.moving > 0.15 ? (p.walk | 0) % 4 : 0;
-      if (!(p.inv > 0.05 && p.hurt <= 0 && ((clock * 16) | 0) % 2 === 0)) drawHero(p.x, p.y, fr, p.face, p.hurt > 0);
+      const fr = p.moving > 0.15 ? 1 + ((p.walk | 0) % 3) : 0;
+      if (!(p.inv > 0.05 && p.hurt <= 0 && ((clock * 16) | 0) % 2 === 0)) clipWade(p.x, p.y, p.wet, () => drawHero(p.x, p.y, fr, p.face, p.hurt > 0));
     } else drawEnemy(it.o);
   }
   // i-frame blink: redraw hero transparent by not drawing — handled above only for hurt white. Add alpha blink:
@@ -1031,8 +1083,7 @@ function drawWorld() {
     ctx.strokeStyle = PAL.paper; ctx.lineWidth = 1; ctx.stroke();
   }
   for (const f of G.fx) if (f.n !== 'shadow-tendrils' && f.n !== 'frost-nova' && f.n !== 'dagger-flurry') drawSprite(f.n, f.t, f.x, f.y, f.sc, f.rot);
-  for (const q of G.parts) { ctx.globalAlpha = Math.max(0, Math.min(1, q.life * 3)); ctx.fillStyle = q.col; ctx.fillRect(q.x | 0, q.y | 0, 2, 2); }
-  ctx.globalAlpha = 1;
+  for (const q of G.parts) { if (q.life < 0.08) continue; ctx.fillStyle = q.col; ctx.fillRect(q.x | 0, q.y | 0, 1, 1); }
   for (const n of G.nums) {
     const sc = (n.crit ? 3 : 2);
     const rise = n.t < 0.1 ? 4 : 4 + (n.t - 0.1) * 36;
@@ -1041,15 +1092,12 @@ function drawWorld() {
   }
   ctx.globalAlpha = 1;
   ctx.restore();
-  if (vignette) ctx.drawImage(vignette, 0, 0);
-  if (G.hurtFlash > 0) { ctx.fillStyle = `rgba(224,64,72,${Math.min(0.35, G.hurtFlash)})`; ctx.fillRect(0, 0, VW, VH); }
-  if (G.goldFlash > 0) { ctx.fillStyle = `rgba(240,192,64,${G.goldFlash * 0.35})`; ctx.fillRect(0, 0, VW, VH); }
 }
 function drawEnemy(e) {
   const d = ENEMY[e.k];
   const white = e.dying ? ((e.dying * 20) | 0) % 2 === 0 : e.flash > 0;
-  if (shadowSpr) ctx.drawImage(shadowSpr, Math.round(e.x - 14 * (d.boss ? 2 : 1)), Math.round(e.y + 4), 28 * (d.boss ? 2 : 1), 8 * (d.boss ? 2 : 1));
-  drawSprite(e.k, e.t, e.x, e.y, d.sc, 0, true, e.x > G.p.x, 1, white);
+  if (shadowSpr && !e.wet) ctx.drawImage(shadowSpr, Math.round(e.x - 4), Math.round(e.y + 1));
+  clipWade(e.x, e.y, e.wet || 0, () => drawSprite(e.k, e.t, e.x, e.y, d.sc, 0, true, e.x > G.p.x, 1, white));
   if (!e.dying && e.hp < e.maxhp && !d.boss) {
     ctx.fillStyle = PAL.ink; ctx.fillRect(e.x - 16, e.y - d.r - 10, 32, 4);
     ctx.fillStyle = PAL.red; ctx.fillRect(e.x - 15, e.y - d.r - 9, 30 * Math.max(0, e.hp / e.maxhp), 2);
@@ -1057,49 +1105,47 @@ function drawEnemy(e) {
 }
 function hudTop() { return Math.max(12, SAFE.t); }
 function drawHUD() {
-  const p = G.p, top = hudTop();
-  ctx.fillStyle = 'rgba(20,16,24,0.55)'; ctx.fillRect(0, 0, VW, top + 52);
-  ctx.fillStyle = PAL.ink; ctx.fillRect(8, top, VW - 16, 8);
-  const xpw = (VW - 20) * Math.min(1, G.xp / Math.max(1, G.need));
-  ctx.fillStyle = '#6a4ad0'; ctx.fillRect(10, top + 2, xpw, 4);
-  ctx.fillStyle = PAL.ink; ctx.fillRect(8, top + 16, 150, 12);
-  ctx.fillStyle = PAL.red; ctx.fillRect(10, top + 18, 146 * Math.max(0, p.hp) / p.maxhp, 8);
-  ctx.fillStyle = '#ffb0b4'; ctx.fillRect(10, top + 18, 146 * Math.max(0, p.hp) / p.maxhp, 2);
-  txt('Lv.' + G.lv, 12, top + 44, 14, PAL.paper, 'left');
+  const p = G.p, top = Math.max(1, SAFE.t | 0);
+  ctx.fillStyle = PAL.ink; ctx.fillRect(0, top, VW, 3);
+  ctx.fillStyle = PAL.purpleL; ctx.fillRect(1, top + 1, Math.max(0, (VW - 2) * Math.min(1, G.xp / Math.max(1, G.need))), 1);
+  ctx.fillStyle = PAL.ink; ctx.fillRect(2, top + 5, 36, 3);
+  ctx.fillStyle = PAL.red; ctx.fillRect(3, top + 6, 34 * Math.max(0, p.hp) / p.maxhp, 1);
+  txt('L' + G.lv, 2, top + 14, 8, PAL.paper, 'left');
   const left = Math.max(0, GAME_LEN - G.t);
-  if (G.t < GAME_LEN) pxText(Math.floor(left / 60) + ':' + String(Math.floor(left % 60)).padStart(2, '0'), VW / 2, top + 18, PAL.paper, 3, 'center');
-  else txt('BOSS', VW / 2, top + 28, 16, PAL.red);
-  txt('击杀 ' + G.kills, VW - 16, top + 36, 14, PAL.paper, 'right');
-  txt('金 ' + G.coins, VW - 16, top + 54, 14, PAL.gold, 'right');
-  txt('第' + (G.wave + 1) + '波', 78, top + 44, 13, '#b7e0a8', 'left', false);
-  if (G.combo >= 2) { box(VW / 2 - 46, top + 58, 92, 26, '#342810', PAL.gold); pxText('x' + G.combo, VW / 2, top + 64, PAL.gold, 3, 'center'); }
+  if (G.t < GAME_LEN) pxText(Math.floor(left / 60) + ':' + String(Math.floor(left % 60)).padStart(2, '0'), VW / 2, top + 6, PAL.paper, 1, 'center');
+  else txt('BOSS', VW / 2, top + 12, 8, PAL.red);
+  txt('杀' + G.kills, VW - 2, top + 12, 8, PAL.paper, 'right');
+  txt('金' + G.coins, VW - 2, top + 22, 8, PAL.gold, 'right');
+  if (p.wet === 2) txt('深水', 40, top + 14, 8, PAL.coatL, 'left');
+  else if (p.wet === 1) txt('浅水', 40, top + 14, 8, PAL.foam, 'left');
+  if (G.combo >= 2) pxText('x' + G.combo, VW / 2, top + 20, PAL.gold, 1, 'center');
   if (G.boss && !G.boss.dead) {
-    const y = top + 92;
-    ctx.fillStyle = PAL.ink; ctx.fillRect(40, y, VW - 80, 10);
-    ctx.fillStyle = '#a040c0'; ctx.fillRect(42, y + 2, (VW - 84) * Math.max(0, G.boss.hp) / G.boss.maxhp, 6);
-    txt('深渊之眼', VW / 2, y + 22, 13, '#e0b0f0');
+    ctx.fillStyle = PAL.ink; ctx.fillRect(30, top + 26, VW - 60, 4);
+    ctx.fillStyle = PAL.purpleL; ctx.fillRect(31, top + 27, (VW - 62) * Math.max(0, G.boss.hp) / G.boss.maxhp, 2);
+    txt('深渊之眼', VW / 2, top + 36, 8, PAL.coatL);
   }
-  const bot = VH - Math.max(14, SAFE.b);
-  ctx.fillStyle = 'rgba(20,16,24,0.5)'; ctx.fillRect(0, bot - 58, VW, 58 + Math.max(14, SAFE.b));
+  const bot = VH - Math.max(2, SAFE.b | 0) - 18;
+  ctx.fillStyle = PAL.ink; ctx.fillRect(0, bot - 1, VW, 19);
   let i = 0;
   for (const k in G.skills) {
-    const x = 10 + (i % 8) * 46, y = bot - 52;
-    box(x, y, 42, 42, '#1c1828', '#6a7ab8');
-    drawIcon(SKILLS[k].icon, x + 4, y + 4, 34);
+    const x = 2 + (i % 9) * 18, y = bot;
+    ctx.fillStyle = PAL.coat; ctx.fillRect(x, y, 16, 16);
+    ctx.fillStyle = PAL.ink; ctx.fillRect(x, y, 16, 1);
+    drawIcon(SKILLS[k].icon, x + 1, y + 1, 14);
     if (!SKILLS[k].passive && (G.cd[k] || 0) > 0.05) {
-      const h = 34 * Math.min(1, G.cd[k] / (G.cdMax[k] || 1));
-      ctx.fillStyle = 'rgba(20,16,24,0.55)'; ctx.fillRect(x + 4, y + 4, 34, h);
+      const h = 14 * Math.min(1, G.cd[k] / (G.cdMax[k] || 1));
+      ctx.fillStyle = PAL.ink; ctx.fillRect(x + 1, y + 1, 14, h);
     }
-    txt(SKILLS[k].evo ? '★' : String(G.skills[k]), x + 36, y + 36, 11, PAL.gold, 'right');
+    txt(SKILLS[k].evo ? '*' : String(G.skills[k]), x + 15, y + 14, 8, PAL.gold, 'right');
     i++;
   }
-  btn('pause', 'Ⅱ', VW - 108, top + 64, 44, 40, '#2a2838');
-  btn('mute', Snd.muted ? '静' : '音', VW - 58, top + 64, 44, 40, Snd.muted ? '#6a3038' : '#245c40');
+  btn('pause', '停', VW - 28, top + 18, 12, 12, PAL.purple);
+  btn('mute', Snd.muted ? '静' : '音', VW - 14, top + 18, 12, 12, Snd.muted ? PAL.redD : PAL.grassD);
   if (input.active && state === 'play') {
-    ctx.strokeStyle = 'rgba(244,240,232,0.45)'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.arc(input.bx, input.by, 56, 0, 7); ctx.stroke();
-    const dx = input.px - input.bx, dy = input.py - input.by, L = Math.hypot(dx, dy) || 1, m = Math.min(L, 56) / L;
-    ctx.fillStyle = 'rgba(244,240,232,0.55)'; ctx.beginPath(); ctx.arc(input.bx + dx * m, input.by + dy * m, 18, 0, 7); ctx.fill();
+    ctx.fillStyle = PAL.paper;
+    ctx.fillRect(input.bx - 10, input.by - 1, 20, 2); ctx.fillRect(input.bx - 1, input.by - 10, 2, 20);
+    const dx = input.px - input.bx, dy = input.py - input.by, L = Math.hypot(dx, dy) || 1, m = Math.min(L, 10) / L;
+    ctx.fillStyle = PAL.gold; ctx.fillRect(Math.round(input.bx + dx * m) - 2, Math.round(input.by + dy * m) - 2, 4, 4);
   }
 }
 function drawBanners() {
@@ -1107,8 +1153,8 @@ function drawBanners() {
   const u = b.t / b.life, a = u < 0.12 ? u / 0.12 : u > 0.7 ? (1 - u) / 0.3 : 1;
   ctx.save(); ctx.globalAlpha = Math.max(0, a);
   const y = hudTop() + 130;
-  const w = Math.max(180, b.text.length * 18);
-  box(VW / 2 - w / 2, y, w, b.sub ? 52 : 36, '#1c1828', b.col);
+  const w = Math.min(VW - 8, Math.max(80, b.text.length * 9));
+  box(VW / 2 - w / 2, y, w, b.sub ? 22 : 14, PAL.ink, b.col);
   txt(b.text, VW / 2, y + (b.sub ? 16 : 18), 16, b.col);
   if (b.sub) txt(b.sub, VW / 2, y + 36, 13, PAL.paper, 'center', false);
   ctx.restore();
@@ -1116,21 +1162,18 @@ function drawBanners() {
 function backdrop(camX, camY) {
   ctx.save(); ctx.translate(Math.round(VW / 2 - camX), Math.round(VH / 2 - camY));
   drawTerrain(camX, camY, null); ctx.restore();
-  if (vignette) ctx.drawImage(vignette, 0, 0);
 }
 function drawTitle() {
-  const camX = 200 + Math.sin(clock * 0.2) * 40, camY = 280 + Math.sin(clock * 0.15) * 24;
+  const camX = 96 + Math.sin(clock * 0.2) * 12, camY = 150;
   backdrop(camX, camY);
-  ctx.fillStyle = 'rgba(20,16,24,0.38)'; ctx.fillRect(0, 0, VW, VH);
-  drawHero(VW / 2, 430, (clock * 8 | 0) % 4, 1, false);
-  txt('像素幸存者', VW / 2, 150, 36, PAL.gold);
-  txt('森林 · 湖畔', VW / 2, 196, 16, '#d8d0f0', 'center', false);
-  txt(`最高 ${best}    金币 ${coinsBank}`, VW / 2, 560, 16, PAL.paper, 'center', false);
-  if (metaRanks()) txt(`永久强化 ${metaRanks()} 级`, VW / 2, 588, 14, '#8ed070', 'center', false);
-  btn('start', '开始游戏', VW / 2 - 110, 620, 220, 56, '#c05038');
-  btn('upgrades', '永久强化', VW / 2 - 110, 688, 220, 48, '#3a4a78');
-  btn('credits', '关于 / 致谢', VW / 2 - 110, 748, 220, 44, '#2a2838');
-  btn('mute', Snd.muted ? '静音' : '音效', VW - 120, Math.max(16, SAFE.t + 8), 96, 40, Snd.muted ? '#6a3038' : '#245c40');
+  drawHero(VW / 2, 150, (clock * 8 | 0) % 2 ? 1 : 0, 1, false);
+  txt('像素幸存者', VW / 2, 36, 8, PAL.gold);
+  txt('湖水减速 雷击湿身', VW / 2, 52, 8, PAL.coatL);
+  txt('最高' + best + ' 金' + coinsBank, VW / 2, 250, 8, PAL.paper);
+  btn('start', '开始', VW / 2 - 36, 270, 72, 20, PAL.red);
+  btn('upgrades', '强化', VW / 2 - 36, 296, 72, 18, PAL.coat);
+  btn('credits', '致谢', VW / 2 - 36, 320, 72, 18, PAL.purple);
+  btn('mute', Snd.muted ? '静' : '音', VW - 22, 4, 16, 14, Snd.muted ? PAL.redD : PAL.grassD);
 }
 function drawCredits() {
   backdrop(160, 280); ctx.fillStyle = 'rgba(20,16,24,0.88)'; ctx.fillRect(0, 0, VW, VH);
@@ -1147,53 +1190,51 @@ function drawCredits() {
     ['地图、英雄与音效为本 Demo 原创，', 14, '#b7e0a8'],
     ['与特效共用同一套限色与 1px 网格。', 14, '#b7e0a8'],
   ];
-  lines.forEach((r, i) => txt(r[0], VW / 2, 80 + i * 36, r[1], r[2]));
-  btn('back', '返回', VW / 2 - 80, VH - 90, 160, 48, '#2a2838');
+  lines.forEach((r, i) => txt(r[0], VW / 2, 16 + i * 28, 8, r[2]));
+  btn('back', '返回', VW / 2 - 24, VH - 22, 48, 16, PAL.purple);
 }
 function drawShop() {
-  backdrop(220, 240); ctx.fillStyle = 'rgba(20,16,24,0.86)'; ctx.fillRect(0, 0, VW, VH);
-  txt('永久强化', VW / 2, 48 + SAFE.t, 26, PAL.gold);
-  txt('持有金币 ' + coinsBank, VW / 2, 84 + SAFE.t, 16, PAL.gold);
+  backdrop(100, 140); ctx.fillStyle = PAL.ink; ctx.fillRect(0, 0, VW, VH);
+  txt('永久强化', VW / 2, 12, 8, PAL.gold);
+  txt('金' + coinsBank, VW / 2, 24, 8, PAL.gold);
   META_DEFS.forEach((m, i) => {
-    const y = 120 + SAFE.t + i * 96, lv = meta[m.id] || 0, maxed = lv >= m.max, cost = m.cost(lv);
+    const y = 36 + i * 52, lv = meta[m.id] || 0, maxed = lv >= m.max, cost = m.cost(lv);
     const deny = denyId === m.id && clock < denyUntil;
-    box(20, y, VW - 40, 84, '#221c30', maxed ? PAL.gold : '#6a7ab8');
-    txt(m.name, 36, y + 24, 18, PAL.paper, 'left');
-    txt(m.desc, 36, y + 52, 14, '#d0c6ff', 'left', false);
-    for (let p = 0; p < m.max; p++) { ctx.fillStyle = p < lv ? PAL.gold : '#3a3450'; ctx.fillRect(200 + p * 16, y + 18, 12, 12); }
-    box(VW - 130, y + 24, 92, 40, maxed ? '#333844' : deny ? '#7a2430' : '#a87820', PAL.gold);
-    txt(maxed ? '已满' : cost + '金', VW - 84, y + 44, 15, PAL.paper);
-    if (!maxed) UI.push({ id: 'buy:' + m.id, x: 20, y, w: VW - 40, h: 84 });
+    box(6, y, VW - 12, 46, PAL.purple, maxed ? PAL.gold : PAL.coatL);
+    txt(m.name, 12, y + 12, 8, PAL.paper, 'left');
+    txt(m.desc, 12, y + 28, 8, PAL.coatL, 'left');
+    for (let p = 0; p < m.max; p++) { ctx.fillStyle = p < lv ? PAL.gold : PAL.ink; ctx.fillRect(12 + p * 6, y + 36, 4, 4); }
+    box(VW - 42, y + 10, 30, 16, maxed ? PAL.purple : deny ? PAL.redD : PAL.dirt, PAL.gold);
+    txt(maxed ? '满' : String(cost), VW - 27, y + 18, 8, PAL.paper);
+    if (!maxed) UI.push({ id: 'buy:' + m.id, x: 6, y, w: VW - 12, h: 46 });
   });
-  btn('back', '返回', VW / 2 - 80, VH - 80, 160, 48, '#2a2838');
+  btn('back', '返回', VW / 2 - 24, VH - 22, 48, 16, PAL.purple);
 }
 function drawLevelUp() {
-  ctx.fillStyle = 'rgba(20,16,24,0.78)'; ctx.fillRect(0, 0, VW, VH);
-  txt('升级！', VW / 2, 56 + SAFE.t, 32, PAL.gold);
-  txt('选择一项', VW / 2, 96 + SAFE.t, 16, '#efe4ff', 'center', false);
+  ctx.fillStyle = PAL.ink; ctx.fillRect(0, 0, VW, VH);
+  txt('升级', VW / 2, 12, 8, PAL.gold);
   const choices = G.choices || [];
   choices.forEach((k, i) => {
-    const y = 130 + SAFE.t + i * 180, s = SKILLS[k], r = RAR[s.rarity] || RAR.common, l = lvOf(k) + 1;
-    box(24, y, VW - 48, 164, r.bg, r.edge);
-    ctx.fillStyle = r.edge; ctx.fillRect(24, y, 6, 164);
-    box(40, y + 16, 72, 72, '#100e16', r.edge);
-    drawIcon(s.icon, 46, y + 22, 60);
-    txt(s.name, 128, y + 32, 20, PAL.paper, 'left');
-    txt(r.name, 128, y + 60, 14, r.col, 'left');
-    txt(l === 1 ? '新技能' : 'Lv.' + l, VW - 40, y + 32, 16, l === 1 ? '#8ed070' : PAL.gold, 'right');
-    txt(s.passive ? '被动' : (s.kind === 'gun' ? '枪械' : s.kind === 'blade' ? '近战' : '法术'), VW - 40, y + 58, 14, '#d2c8ff', 'right', false);
-    wrap(s.desc(l), 40, y + 108, VW - 88, 15);
-    UI.push({ id: 'pick:' + k, x: 24, y, w: VW - 48, h: 164 });
+    const y = 24 + i * 100, s = SKILLS[k], r = RAR[s.rarity] || RAR.common, l = lvOf(k) + 1;
+    box(8, y, VW - 16, 92, r.bg, r.edge);
+    ctx.fillStyle = r.edge; ctx.fillRect(8, y, 2, 92);
+    ctx.fillStyle = PAL.ink; ctx.fillRect(14, y + 8, 28, 28);
+    drawIcon(s.icon, 16, y + 10, 24);
+    txt(s.name, 48, y + 14, 8, PAL.paper, 'left');
+    txt(r.name, 48, y + 26, 8, r.col, 'left');
+    txt(l === 1 ? '新' : 'L' + l, VW - 14, y + 14, 8, PAL.gold, 'right');
+    wrap(s.desc(l), 14, y + 48, VW - 28);
+    UI.push({ id: 'pick:' + k, x: 8, y, w: VW - 16, h: 92 });
   });
-  btn('reroll', '看广告 换一批', VW / 2 - 130, VH - Math.max(36, SAFE.b) - 64, 260, 52, '#6a4a20');
+  btn('reroll', '广告换一批', VW / 2 - 40, VH - 28, 80, 18, PAL.dirt);
 }
-function wrap(s, x, y, w, px) {
-  ctx.font = font(px, false); let line = '', yy = y;
+function wrap(s, x, y, w) {
+  let line = '', yy = y;
   for (const ch of s) {
-    if (ctx.measureText(line + ch).width > w) { txt(line, x, yy, px, '#f2f2f6', 'left', false); line = ''; yy += px + 6; }
+    if (textWidth(line + ch, 1) > w && line) { txt(line, x, yy, 8, PAL.paper, 'left'); line = ''; yy += 9; }
     line += ch;
   }
-  if (line) txt(line, x, yy, px, '#f2f2f6', 'left', false);
+  if (line) txt(line, x, yy, 8, PAL.paper, 'left');
 }
 function drawChestPop() {
   ctx.fillStyle = 'rgba(20,16,24,0.45)'; ctx.fillRect(0, 0, VW, VH);
@@ -1202,36 +1243,33 @@ function drawChestPop() {
   txt('升级', VW / 2, VH / 2 - 120, 28, PAL.gold);
 }
 function drawEnd() {
-  ctx.fillStyle = 'rgba(20,16,24,0.92)'; ctx.fillRect(0, 0, VW, VH);
+  ctx.fillStyle = PAL.ink; ctx.fillRect(0, 0, VW, VH);
   const win = G.win;
-  box(28, 48, VW - 56, VH - 120, '#171426', win ? PAL.gold : PAL.red);
-  txt(win ? '你活下来了' : '你倒下了', VW / 2, 96, 28, win ? PAL.gold : '#ff8088');
+  txt(win ? '你活下来了' : '你倒下了', VW / 2, 16, 8, win ? PAL.gold : PAL.red);
   const rows = [
-    ['存活', Math.floor(G.t / 60) + '分' + String(Math.floor(G.t % 60)).padStart(2, '0') + '秒'],
-    ['等级', 'Lv.' + G.lv], ['击杀', String(G.kills)], ['最高连击', 'x' + (G.maxCombo || 0)],
-    ['波次', '第 ' + (G.wave + 1) + ' 波'], ['造成伤害', String(G.dealt)], ['得分', G.score + ' / 最高 ' + best],
+    ['时间', Math.floor(G.t / 60) + ':' + String(Math.floor(G.t % 60)).padStart(2, '0')],
+    ['等级', 'L' + G.lv], ['击杀', String(G.kills)], ['连击', 'x' + (G.maxCombo || 0)],
+    ['波次', String(G.wave + 1)], ['伤害', String(G.dealt)], ['得分', String(G.score)],
   ];
-  rows.forEach((r, i) => { const y = 150 + i * 36; txt(r[0], 56, y, 16, '#c8b8ff', 'left', false); txt(r[1], VW - 56, y, 16, PAL.paper, 'right'); });
-  txt('本局金币 ' + G.coins, VW / 2, 420, 20, PAL.gold);
-  let y = 470;
-  if (!win && !G.revived) { btn('revive', '看广告 复活', 48, y, VW - 96, 52, '#2a8a48'); y += 64; }
+  rows.forEach((r, i) => { const y = 36 + i * 14; txt(r[0], 16, y, 8, PAL.coatL, 'left'); txt(r[1], VW - 16, y, 8, PAL.paper, 'right'); });
+  txt('金币' + G.coins, VW / 2, 150, 8, PAL.gold);
+  let y = 170;
+  if (!win && !G.revived) { btn('revive', '广告复活', 30, y, VW - 60, 18, PAL.grass); y += 22; }
   if (!G.banked) {
-    btn('double', '看广告 双倍奖励', 48, y, VW - 96, 52, '#a87820'); y += 64;
-    btn('normal', '直接领取', 48, y, VW - 96, 48, '#2a2838');
+    btn('double', '广告双倍', 30, y, VW - 60, 18, PAL.dirt); y += 22;
+    btn('normal', '领取', 30, y, VW - 60, 16, PAL.purple);
   } else {
-    txt('已领取 ' + (G.coins * G.banked) + ' 金币', VW / 2, y + 10, 16, '#8ed070');
-    btn('again', '再来一局', 48, y + 40, VW - 96, 52, '#c05038');
-    btn('home', '返回首页', 48, y + 104, VW - 96, 48, '#2a2838');
+    txt('已领' + (G.coins * G.banked), VW / 2, y, 8, PAL.grassL);
+    btn('again', '再来', 30, y + 16, VW - 60, 18, PAL.red);
+    btn('home', '首页', 30, y + 38, VW - 60, 16, PAL.purple);
   }
-  txt('广告为占位，看完即发奖励', VW / 2, VH - 48, 12, '#9aa', 'center', false);
 }
 function drawPause() {
-  ctx.fillStyle = 'rgba(20,16,24,0.72)'; ctx.fillRect(0, 0, VW, VH);
-  box(48, VH / 2 - 140, VW - 96, 280, '#171426', '#6a7ab8');
-  txt('暂停', VW / 2, VH / 2 - 90, 26, PAL.gold);
-  btn('resume', '继续', 80, VH / 2 - 40, VW - 160, 52, '#3a4a78');
-  btn('mute', Snd.muted ? '打开音效' : '关闭音效', 80, VH / 2 + 24, VW - 160, 48, '#245c40');
-  btn('home', '返回首页', 80, VH / 2 + 84, VW - 160, 48, '#2a2838');
+  ctx.fillStyle = PAL.ink; ctx.fillRect(0, 0, VW, VH);
+  txt('暂停', VW / 2, VH / 2 - 40, 8, PAL.gold);
+  btn('resume', '继续', 40, VH / 2 - 20, VW - 80, 18, PAL.coat);
+  btn('mute', Snd.muted ? '开音' : '静音', 40, VH / 2 + 4, VW - 80, 16, PAL.grassD);
+  btn('home', '首页', 40, VH / 2 + 26, VW - 80, 16, PAL.purple);
 }
 function drawAd() {
   ctx.fillStyle = 'rgba(0,0,0,0.88)'; ctx.fillRect(0, 0, VW, VH);
@@ -1277,9 +1315,7 @@ function frame(now) {
     else update(dt);
   }
   if (G) tickVisual(G.hitStop > 0 ? dt * 0.15 : dt);
-  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#000'; ctx.fillRect(0, 0, cv.width, cv.height);
-  ctx.setTransform(S, 0, 0, S, OX, OY); ctx.imageSmoothingEnabled = false;
-  ctx.save(); ctx.beginPath(); ctx.rect(0, 0, VW, VH); ctx.clip();
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#000'; ctx.fillRect(0, 0, VW, VH);
   UI = [];
   if (state === 'loading') { ctx.fillStyle = PAL.grassD; ctx.fillRect(0, 0, VW, VH); txt('加载中', VW / 2, VH / 2, 18); }
   else if (state === 'title') drawTitle();
@@ -1295,8 +1331,8 @@ function frame(now) {
     else if (state === 'pause') { UI = []; drawPause(); }
   }
   if (Ads.busy) drawAd();
-  if (/[?&]debug/.test(location.search)) txt(fps + 'fps ' + frameMs.toFixed(1) + 'ms', 8, VH - 80, 12, '#9f9', 'left', false);
-  ctx.restore();
+  if (/[?&]debug/.test(location.search)) txt(fps + ' ' + frameMs.toFixed(1), 2, VH - 20, 8, PAL.leaf, 'left');
+  present();
   const work = performance.now() - t0; msAcc += work; msN++;
   if (msN >= 20) { frameMs = msAcc / msN; msAcc = 0; msN = 0; }
   requestAnimationFrame(frame);
